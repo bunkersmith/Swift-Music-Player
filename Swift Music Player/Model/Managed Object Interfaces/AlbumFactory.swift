@@ -11,7 +11,10 @@ import MediaPlayer
 
 class AlbumFactory {
     
-    class func populateAlbumSummary(inout albumSummary:AlbumSummary, mediaItem:MPMediaItem, albumTitle:String, albumArtistName:String, albumPersistentID:UInt64) {
+    var delegate:DatabaseProgressDelegate?
+    private var instrumentalAlbums: Array<NSDictionary>!
+    
+    func populateAlbumSummary(inout albumSummary:AlbumSummary, mediaItem:MPMediaItem, albumTitle:String, albumArtistName:String, albumPersistentID:UInt64) {
         albumSummary.title = albumTitle
         albumSummary.searchKey = albumTitle
         albumSummary.strippedTitle = MediaObjectUtilities.returnMediaObjectStrippedString(albumSummary.title)
@@ -20,7 +23,7 @@ class AlbumFactory {
         albumSummary.persistentID = albumPersistentID
     }
     
-    class func populateAlbum(inout album:Album,
+    func populateAlbum(inout album:Album,
                              albumSummary:AlbumSummary,
                              mediaItem:MPMediaItem,
                              artistPersistentID:UInt64,
@@ -32,12 +35,12 @@ class AlbumFactory {
         album.releaseYearString = AlbumsInterface.returnAlbumReleaseYearString(mediaItem)
         album.duration = AlbumsInterface.returnAlbumPlaybackDuration(albumSongMediaItems)
         album.persistentKey = AlbumsInterface.persistentKeyForAlbum(album, albumSummary: albumSummary, databaseInterface: databaseInterface)
-        //album.isInstrumental = isInstrumentalValueForAlbum(album, userPreferences: userPreferences)
         album.addSongsObjects(AlbumsInterface.tracksForAlbum(album, albumSummary: albumSummary, databaseInterface: databaseInterface, albumSongMediaItems: albumSongMediaItems))
         album.summary = albumSummary
-    }
+        album.isInstrumental = AlbumsInterface.isInstrumentalValueForAlbum(album, instrumentalAlbumsArray: instrumentalAlbums)
+     }
     
-    class func processAlbumMediaItem(albumMediaItem: MPMediaItem, albumSongMediaItems: Array<MPMediaItem>, albumIndex: Int16, databaseInterface: DatabaseInterface) -> Bool {
+    func processAlbumMediaItem(albumMediaItem: MPMediaItem, albumSongMediaItems: Array<MPMediaItem>, albumIndex: Int16, databaseInterface: DatabaseInterface) -> Bool {
         let currentAlbumArtistName = MediaObjectUtilities.anyObjectToStringOrEmptyString(albumMediaItem.albumArtist)
         if currentAlbumArtistName == "" {
             Logger.writeToLogFile("currentAlbumArtistName is nil for album titled \(albumMediaItem.albumTitle)")
@@ -69,8 +72,13 @@ class AlbumFactory {
     }
     
     // THIS METHOD MUST BE CALLED FROM A BACKGROUND THREAD TO AVOID BLOCKING THE UI
-    class func fillDatabaseAlbumsFromItunesLibrary() {
+    func fillDatabaseAlbumsFromItunesLibrary() {
+        guard !NSThread.isMainThread() else { return }
+        
         let startTime = MillisecondTimer.currentTickCount()
+        
+        let userPreferences = UserPreferences()
+        instrumentalAlbums = userPreferences.instrumentalAlbums
         
         let databaseInterface = DatabaseInterface(forMainThread: false)
         
@@ -89,8 +97,7 @@ class AlbumFactory {
                 
                 if albumIndex % 10 == 0 || albumIndex == albumsCollection!.count - 1 {
                     progressFraction = Float(albumIndex + 1) / Float(albumsCollection!.count)
-                    NSLog("progressFraction: \(progressFraction)")
-                    //delegate?.progressUpdate(progressFraction, operationType: .AlbumOperation)
+                    delegate?.progressUpdate(progressFraction, operationType: .AlbumOperation)
                 }
                 
                 albumIndex+=1
