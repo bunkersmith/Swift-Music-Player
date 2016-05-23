@@ -48,6 +48,9 @@
 		6718BF411CF294D40046124E /* AudioPlayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6718BF3E1CF294D40046124E /* AudioPlayer.swift */; };
 		6718BF421CF294D40046124E /* AudioSessionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6718BF3F1CF294D40046124E /* AudioSessionManager.swift */; };
 		6718BF441CF297C40046124E /* RemoteAudioCommandHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6718BF431CF297C40046124E /* RemoteAudioCommandHandler.swift */; };
+		67B496301CF2B7990079A0AE /* Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 67B4962F1CF2B7990079A0AE /* Extensions.swift */; };
+		67B496321CF2BC6D0079A0AE /* UserPreferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = 67B496311CF2BC6D0079A0AE /* UserPreferences.swift */; };
+		67B496341CF2BD7F0079A0AE /* DefaultValues.plist in Resources */ = {isa = PBXBuildFile; fileRef = 67B496331CF2BD7F0079A0AE /* DefaultValues.plist */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -97,6 +100,9 @@
 		6718BF3E1CF294D40046124E /* AudioPlayer.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; lineEnding = 0; path = AudioPlayer.swift; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.swift; };
 		6718BF3F1CF294D40046124E /* AudioSessionManager.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; lineEnding = 0; path = AudioSessionManager.swift; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.swift; };
 		6718BF431CF297C40046124E /* RemoteAudioCommandHandler.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = RemoteAudioCommandHandler.swift; sourceTree = "<group>"; };
+		67B4962F1CF2B7990079A0AE /* Extensions.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Extensions.swift; sourceTree = "<group>"; };
+		67B496311CF2BC6D0079A0AE /* UserPreferences.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = UserPreferences.swift; sourceTree = "<group>"; };
+		67B496331CF2BD7F0079A0AE /* DefaultValues.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = DefaultValues.plist; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -139,6 +145,7 @@
 				6718BEDF1CF11D400046124E /* Utilities */,
 				6718BE991CF117980046124E /* View Controllers */,
 				6718BE851CF110B30046124E /* Assets.xcassets */,
+				67B496331CF2BD7F0079A0AE /* DefaultValues.plist */,
 				6718BE8A1CF110B30046124E /* Info.plist */,
 				6718BEEF1CF122670046124E /* Swift Music Player-Bridging-Header.h */,
 			);
@@ -232,10 +239,12 @@
 			isa = PBXGroup;
 			children = (
 				6718BEE01CF11D510046124E /* DateTimeUtilities.swift */,
+				67B4962F1CF2B7990079A0AE /* Extensions.swift */,
 				6718BEE41CF11ED60046124E /* FileUtilities.swift */,
 				6718BEF31CF128B40046124E /* MediaObjectUtilities.swift */,
 				6718BEF71CF12B460046124E /* MillisecondTimer.swift */,
 				6718BEE21CF11E110046124E /* ObjectToStringUtilities.swift */,
+				67B496311CF2BC6D0079A0AE /* UserPreferences.swift */,
 				6718BEE61CF1209E0046124E /* Utilities.swift */,
 			);
 			path = Utilities;
@@ -245,11 +254,11 @@
 			isa = PBXGroup;
 			children = (
 				6718BEF11CF128050046124E /* SongFactory.swift */,
-				6718BEF51CF12A810046124E /* SongsInterface.swift */,
 				6718BEF91CF131D10046124E /* SongFetcher.swift */,
+				6718BEF51CF12A810046124E /* SongsInterface.swift */,
 				6718BEFD1CF137730046124E /* AlbumFactory.swift */,
-				6718BEFF1CF138EA0046124E /* AlbumsInterface.swift */,
 				6718BF011CF139960046124E /* AlbumFetcher.swift */,
+				6718BEFF1CF138EA0046124E /* AlbumsInterface.swift */,
 			);
 			path = "Managed Object Interfaces";
 			sourceTree = "<group>";
@@ -325,6 +334,7 @@
 			files = (
 				6718BE9E1CF117F50046124E /* Main.storyboard in Resources */,
 				6718BE861CF110B30046124E /* Assets.xcassets in Resources */,
+				67B496341CF2BD7F0079A0AE /* DefaultValues.plist in Resources */,
 				6718BE9D1CF117F50046124E /* LaunchScreen.storyboard in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -361,6 +371,7 @@
 				6718BEE31CF11E110046124E /* ObjectToStringUtilities.swift in Sources */,
 				6718BEE51CF11ED60046124E /* FileUtilities.swift in Sources */,
 				6718BF041CF13BB70046124E /* SliderExtensions.swift in Sources */,
+				67B496321CF2BC6D0079A0AE /* UserPreferences.swift in Sources */,
 				6718BF441CF297C40046124E /* RemoteAudioCommandHandler.swift in Sources */,
 				6718BEF41CF128B40046124E /* MediaObjectUtilities.swift in Sources */,
 				6718BEE11CF11D510046124E /* DateTimeUtilities.swift in Sources */,
@@ -370,6 +381,7 @@
 				6718BEE91CF1211A0046124E /* NowPlayingViewController.swift in Sources */,
 				6718BEBE1CF11BBD0046124E /* DatabaseInterface.swift in Sources */,
 				6718BECE1CF11C3C0046124E /* Artist.swift in Sources */,
+				67B496301CF2B7990079A0AE /* Extensions.swift in Sources */,
 				6718BEF61CF12A810046124E /* SongsInterface.swift in Sources */,
 				6718BECC1CF11C3C0046124E /* Album.swift in Sources */,
 				6718BF021CF139960046124E /* AlbumFetcher.swift in Sources */,
