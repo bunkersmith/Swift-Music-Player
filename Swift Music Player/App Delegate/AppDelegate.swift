@@ -15,7 +15,13 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
 
     func application(application: UIApplication, didFinishLaunchingWithOptions launchOptions: [NSObject: AnyObject]?) -> Bool {
-        // Override point for customization after application launch.
+        if Platform.isSimulator {
+            NSLog("This app won't run successfully on the simulator")
+            abort()
+        }
+        
+        UserInterfaceCustomizer.createCustomGUI()
+        
         return true
     }
 

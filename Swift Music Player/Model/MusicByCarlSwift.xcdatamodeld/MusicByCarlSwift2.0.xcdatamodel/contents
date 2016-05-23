@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<model userDefinedModelVersionIdentifier="2.0" type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="10174" systemVersion="15D21" minimumToolsVersion="Xcode 4.3">
+    <entity name="Album" representedClassName=".Album" syncable="YES">
+        <attribute name="artistPersistentID" optional="YES" attributeType="Integer 64" defaultValueString="0.0" syncable="YES"/>
+        <attribute name="duration" optional="YES" attributeType="Double" defaultValueString="0.0" syncable="YES"/>
+        <attribute name="internalID" optional="YES" attributeType="Integer 16" defaultValueString="0" syncable="YES"/>
+        <attribute name="isInstrumental" optional="YES" attributeType="Boolean" syncable="YES"/>
+        <attribute name="persistentKey" optional="YES" attributeType="Integer 64" defaultValueString="0" syncable="YES"/>
+        <attribute name="releaseYearString" optional="YES" attributeType="String" syncable="YES"/>
+        <relationship name="artist" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="Artist" inverseName="albums" inverseEntity="Artist" syncable="YES"/>
+        <relationship name="songs" optional="YES" toMany="YES" deletionRule="Nullify" ordered="YES" destinationEntity="Song" inverseName="album" inverseEntity="Song" syncable="YES"/>
+        <relationship name="summary" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="AlbumSummary" inverseName="forAlbum" inverseEntity="AlbumSummary" syncable="YES"/>
+    </entity>
+    <entity name="AlbumSummary" representedClassName=".AlbumSummary" syncable="YES">
+        <attribute name="artistName" optional="YES" attributeType="String" syncable="YES"/>
+        <attribute name="indexCharacter" optional="YES" attributeType="String" syncable="YES"/>
+        <attribute name="persistentID" optional="YES" attributeType="Integer 64" defaultValueString="0" syncable="YES"/>
+        <attribute name="searchKey" optional="YES" attributeType="String" syncable="YES"/>
+        <attribute name="strippedTitle" optional="YES" attributeType="String" syncable="YES"/>
+        <attribute name="title" optional="YES" attributeType="String" syncable="YES"/>
+        <relationship name="forAlbum" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="Album" inverseName="summary" inverseEntity="Album" syncable="YES"/>
+    </entity>
+    <entity name="Artist" representedClassName=".Artist" syncable="YES">
+        <relationship name="albums" optional="YES" toMany="YES" deletionRule="Nullify" ordered="YES" destinationEntity="Album" inverseName="artist" inverseEntity="Album" syncable="YES"/>
+        <relationship name="genres" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="Genre" inverseName="artists" inverseEntity="Genre" syncable="YES"/>
+        <relationship name="summary" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="ArtistSummary" inverseName="forArtist" inverseEntity="ArtistSummary" syncable="YES"/>
+    </entity>
+    <entity name="ArtistSummary" representedClassName=".ArtistSummary" syncable="YES">
+        <attribute name="indexCharacter" optional="YES" attributeType="String" syncable="YES"/>
+        <attribute name="name" optional="YES" attributeType="String" syncable="YES"/>
+        <attribute name="persistentID" optional="YES" attributeType="Integer 64" defaultValueString="0" syncable="YES"/>
+        <attribute name="searchKey" optional="YES" attributeType="String" syncable="YES"/>
+        <attribute name="strippedName" optional="YES" attributeType="String" syncable="YES"/>
+        <relationship name="forArtist" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="Artist" inverseName="summary" inverseEntity="Artist" syncable="YES"/>
+    </entity>
+    <entity name="Genre" representedClassName=".Genre" syncable="YES">
+        <relationship name="artists" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="Artist" inverseName="genres" inverseEntity="Artist" syncable="YES"/>
+        <relationship name="summary" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="GenreSummary" inverseName="forGenre" inverseEntity="GenreSummary" syncable="YES"/>
+    </entity>
+    <entity name="GenreSummary" representedClassName=".GenreSummary" syncable="YES">
+        <attribute name="indexCharacter" optional="YES" attributeType="String" syncable="YES"/>
+        <attribute name="name" optional="YES" attributeType="String" syncable="YES"/>
+        <attribute name="persistentID" optional="YES" attributeType="Integer 64" defaultValueString="0" syncable="YES"/>
+        <attribute name="searchKey" optional="YES" attributeType="String" syncable="YES"/>
+        <relationship name="forGenre" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="Genre" inverseName="summary" inverseEntity="Genre" syncable="YES"/>
+    </entity>
+    <entity name="Playlist" representedClassName=".Playlist" syncable="YES">
+        <relationship name="songSummaries" optional="YES" toMany="YES" deletionRule="Nullify" ordered="YES" destinationEntity="SongSummary" inverseName="inPlaylists" inverseEntity="SongSummary" syncable="YES"/>
+        <relationship name="summary" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="PlaylistSummary" inverseName="forPlaylist" inverseEntity="PlaylistSummary" syncable="YES"/>
+    </entity>
+    <entity name="PlaylistSummary" representedClassName=".PlaylistSummary" syncable="YES">
+        <attribute name="persistentID" optional="YES" attributeType="Integer 64" defaultValueString="0" syncable="YES"/>
+        <attribute name="searchKey" optional="YES" attributeType="String" syncable="YES"/>
+        <attribute name="title" optional="YES" attributeType="String" syncable="YES"/>
+        <relationship name="forPlaylist" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="Playlist" inverseName="summary" inverseEntity="Playlist" syncable="YES"/>
+    </entity>
+    <entity name="Song" representedClassName=".Song" syncable="YES">
+        <attribute name="albumArtistName" optional="YES" attributeType="String" syncable="YES"/>
+        <attribute name="albumPersistentID" optional="YES" attributeType="Integer 64" defaultValueString="0" syncable="YES"/>
+        <attribute name="albumTitle" optional="YES" attributeType="String" syncable="YES"/>
+        <attribute name="assetURL" optional="YES" attributeType="Binary" syncable="YES"/>
+        <attribute name="duration" optional="YES" attributeType="Double" defaultValueString="0.0" syncable="YES"/>
+        <attribute name="genreName" optional="YES" attributeType="String" syncable="YES"/>
+        <attribute name="trackNumber" optional="YES" attributeType="Integer 64" defaultValueString="0" syncable="YES"/>
+        <relationship name="album" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="Album" inverseName="songs" inverseEntity="Album" syncable="YES"/>
+        <relationship name="summary" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="SongSummary" inverseName="forSong" inverseEntity="SongSummary" syncable="YES"/>
+    </entity>
+    <entity name="SongSummary" representedClassName=".SongSummary" syncable="YES">
+        <attribute name="artistName" optional="YES" attributeType="String" syncable="YES"/>
+        <attribute name="indexCharacter" optional="YES" attributeType="String" syncable="YES"/>
+        <attribute name="lastPlayedTime" optional="YES" attributeType="Double" defaultValueString="0.0" syncable="YES"/>
+        <attribute name="persistentID" optional="YES" attributeType="Integer 64" defaultValueString="0" syncable="YES"/>
+        <attribute name="persistentKey" optional="YES" attributeType="Integer 64" defaultValueString="0" syncable="YES"/>
+        <attribute name="searchKey" optional="YES" attributeType="String" syncable="YES"/>
+        <attribute name="strippedTitle" optional="YES" attributeType="String" syncable="YES"/>
+        <attribute name="title" optional="YES" attributeType="String" syncable="YES"/>
+        <relationship name="forSong" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="Song" inverseName="summary" inverseEntity="Song" syncable="YES"/>
+        <relationship name="inPlaylists" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="Playlist" inverseName="songSummaries" inverseEntity="Playlist" syncable="YES"/>
+    </entity>
+    <elements>
+        <element name="Album" positionX="-63" positionY="-18" width="128" height="180"/>
+        <element name="AlbumSummary" positionX="-54" positionY="36" width="128" height="150"/>
+        <element name="Artist" positionX="-36" positionY="72" width="128" height="90"/>
+        <element name="ArtistSummary" positionX="-18" positionY="81" width="128" height="135"/>
+        <element name="Genre" positionX="0" positionY="90" width="128" height="75"/>
+        <element name="GenreSummary" positionX="18" positionY="117" width="128" height="120"/>
+        <element name="Playlist" positionX="36" positionY="135" width="128" height="75"/>
+        <element name="PlaylistSummary" positionX="-9" positionY="81" width="128" height="105"/>
+        <element name="Song" positionX="0" positionY="90" width="128" height="180"/>
+        <element name="SongSummary" positionX="9" positionY="108" width="128" height="195"/>
+    </elements>
+</model>
