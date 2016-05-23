@@ -10,7 +10,10 @@ import Foundation
 import MediaPlayer
 
 class SongFactory {
-    class func populateSongSummary(inout songSummary:SongSummary, mediaItem:MPMediaItem) {
+
+    var delegate:DatabaseProgressDelegate?
+    
+    func populateSongSummary(inout songSummary:SongSummary, mediaItem:MPMediaItem) {
         songSummary.artistName = MediaObjectUtilities.anyObjectToStringOrEmptyString(mediaItem.artist)
         songSummary.title = mediaItem.title!
         songSummary.searchKey = songSummary.title
@@ -20,7 +23,7 @@ class SongFactory {
         songSummary.lastPlayedTime = 0
     }
     
-    class func populateSong(inout song:Song, songURL:NSURL, songSummary:SongSummary, mediaItem:MPMediaItem, databaseInterface: DatabaseInterface) {
+    func populateSong(inout song:Song, songURL:NSURL, songSummary:SongSummary, mediaItem:MPMediaItem, databaseInterface: DatabaseInterface) {
         song.albumPersistentID = mediaItem.albumPersistentID
         song.assetURL = NSKeyedArchiver.archivedDataWithRootObject(songURL)
         song.duration = mediaItem.playbackDuration
@@ -34,7 +37,9 @@ class SongFactory {
 
     
     // THIS METHOD MUST BE CALLED FROM A BACKGROUND THREAD TO AVOID BLOCKING THE UI
-    class func fillDatabaseSongsFromItunesLibrary() {
+    func fillDatabaseSongsFromItunesLibrary() {
+        guard !NSThread.isMainThread() else { return }
+        
         let startTime = MillisecondTimer.currentTickCount()
         
         let databaseInterface = DatabaseInterface(forMainThread: false)
@@ -69,8 +74,7 @@ class SongFactory {
                 
                 if songIndex % 20 == 0 || songIndex == mediaLibrarySongsArray!.count - 1 {
                     progressFraction = Float(songIndex + 1) / Float(mediaLibrarySongsArray!.count)
-                    NSLog("progressFraction = \(progressFraction)")
-                    //delegate?.progressUpdate(progressFraction, operationType: .SongOperation)
+                    delegate?.progressUpdate(progressFraction, operationType: .SongOperation)
                 }
                 
                 songIndex+=1
