@@ -43,4 +43,16 @@ class AlbumFetcher {
         return Array<Song>()
     }
     
+    class func fetchAlbumByTitleAndArtist(title: String, artistName: String) -> Album? {
+        let databaseInterface = DatabaseInterface(forMainThread: true)
+        let predicate = NSPredicate(format: "summary.title == %@ AND summary.artistName = %@", title, artistName)
+        
+        let albumObjects:Array<Album> = databaseInterface.entitiesOfType("Album", predicate: predicate) as! Array<Album>
+        if albumObjects.count == 1 {
+            return albumObjects.first
+        }
+        
+        return nil
+    }
+    
 }
