@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="10117" systemVersion="15D21" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" initialViewController="zBt-LZ-a3r">
+    <dependencies>
+        <deployment identifier="iOS"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="10085"/>
+    </dependencies>
+    <scenes>
+        <!--Database-->
+        <scene sceneID="vPn-9A-659">
+            <objects>
+                <viewController storyboardIdentifier="DatabaseViewController" useStoryboardIdentifierAsRestorationIdentifier="YES" id="zBt-LZ-a3r" customClass="DatabaseViewController" customModule="Swift_Music_Player" customModuleProvider="target" sceneMemberID="viewController">
+                    <layoutGuides>
+                        <viewControllerLayoutGuide type="top" id="AX4-tG-gQe"/>
+                        <viewControllerLayoutGuide type="bottom" id="eBV-3F-dAD"/>
+                    </layoutGuides>
+                    <view key="view" contentMode="scaleToFill" id="Rcq-Sh-53j">
+                        <rect key="frame" x="0.0" y="0.0" width="600" height="600"/>
+                        <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                        <subviews>
+                            <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="9yU-Ue-1Re">
+                                <rect key="frame" x="248" y="44" width="104" height="30"/>
+                                <state key="normal" title="Build Database">
+                                    <color key="titleShadowColor" white="0.5" alpha="1" colorSpace="calibratedWhite"/>
+                                </state>
+                                <connections>
+                                    <action selector="buildDatabaseButtonPressed:" destination="zBt-LZ-a3r" eventType="touchUpInside" id="Fal-b5-YPE"/>
+                                </connections>
+                            </button>
+                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Building Songs List" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="xy7-Sc-xHC">
+                                <rect key="frame" x="235" y="94" width="131" height="21"/>
+                                <constraints>
+                                    <constraint firstAttribute="height" constant="21" id="WIu-ak-9hB"/>
+                                </constraints>
+                                <fontDescription key="fontDescription" type="system" pointSize="15"/>
+                                <nil key="highlightedColor"/>
+                            </label>
+                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Building Albums List" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="QdE-ft-LiG">
+                                <rect key="frame" x="231" y="131" width="139" height="21"/>
+                                <constraints>
+                                    <constraint firstAttribute="height" constant="21" id="pJj-f8-PRG"/>
+                                </constraints>
+                                <fontDescription key="fontDescription" type="system" pointSize="15"/>
+                                <nil key="highlightedColor"/>
+                            </label>
+                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Building Artists List" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="AfL-5d-7nz">
+                                <rect key="frame" x="234" y="168" width="132.5" height="21"/>
+                                <constraints>
+                                    <constraint firstAttribute="height" constant="21" id="bxC-Lm-W40"/>
+                                </constraints>
+                                <fontDescription key="fontDescription" type="system" pointSize="15"/>
+                                <nil key="highlightedColor"/>
+                            </label>
+                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Building Playlists List" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="8C4-aJ-jLj">
+                                <rect key="frame" x="228" y="205" width="144" height="21"/>
+                                <constraints>
+                                    <constraint firstAttribute="height" constant="21" id="M5A-Z7-Bjx"/>
+                                </constraints>
+                                <fontDescription key="fontDescription" type="system" pointSize="15"/>
+                                <nil key="highlightedColor"/>
+                            </label>
+                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Building Genres List" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="UIe-Mo-46M">
+                                <rect key="frame" x="232" y="242" width="137" height="21"/>
+                                <constraints>
+                                    <constraint firstAttribute="height" constant="21" id="lbl-xm-3tb"/>
+                                </constraints>
+                                <fontDescription key="fontDescription" type="system" pointSize="15"/>
+                                <nil key="highlightedColor"/>
+                            </label>
+                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Operation Progress" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="6dN-rW-ekC">
+                                <rect key="frame" x="234" y="283" width="133" height="21"/>
+                                <constraints>
+                                    <constraint firstAttribute="height" constant="21" id="ALK-oA-rSR"/>
+                                </constraints>
+                                <fontDescription key="fontDescription" type="system" pointSize="15"/>
+                                <color key="textColor" red="0.0" green="0.75294117650000003" blue="0.0" alpha="1" colorSpace="calibratedRGB"/>
+                                <nil key="highlightedColor"/>
+                            </label>
+                            <progressView opaque="NO" contentMode="scaleToFill" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="5il-Cz-7bJ">
+                                <rect key="frame" x="225" y="318" width="150" height="2"/>
+                                <constraints>
+                                    <constraint firstAttribute="width" constant="150" id="aJR-YJ-rNr"/>
+                                </constraints>
+                                <color key="progressTintColor" red="0.0" green="0.75294117650000003" blue="0.0" alpha="1" colorSpace="calibratedRGB"/>
+                                <color key="trackTintColor" red="0.0" green="0.50196078430000002" blue="0.0" alpha="1" colorSpace="calibratedRGB"/>
+                            </progressView>
+                        </subviews>
+                        <color key="backgroundColor" white="0.0" alpha="1" colorSpace="calibratedWhite"/>
+                        <constraints>
+                            <constraint firstAttribute="centerX" secondItem="AfL-5d-7nz" secondAttribute="centerX" id="6QA-nE-QGf"/>
+                            <constraint firstAttribute="centerX" secondItem="UIe-Mo-46M" secondAttribute="centerX" id="8ow-ZN-pPb"/>
+                            <constraint firstItem="UIe-Mo-46M" firstAttribute="top" secondItem="8C4-aJ-jLj" secondAttribute="bottom" constant="16" id="9qo-5E-yTL"/>
+                            <constraint firstAttribute="centerX" secondItem="QdE-ft-LiG" secondAttribute="centerX" id="EpV-uD-GOi"/>
+                            <constraint firstAttribute="centerX" secondItem="9yU-Ue-1Re" secondAttribute="centerX" id="IHn-hB-Elr"/>
+                            <constraint firstItem="xy7-Sc-xHC" firstAttribute="top" secondItem="9yU-Ue-1Re" secondAttribute="bottom" constant="20" id="KNY-c4-wyk"/>
+                            <constraint firstItem="8C4-aJ-jLj" firstAttribute="top" secondItem="AfL-5d-7nz" secondAttribute="bottom" constant="16" id="US1-4j-Y6b"/>
+                            <constraint firstItem="5il-Cz-7bJ" firstAttribute="top" secondItem="6dN-rW-ekC" secondAttribute="bottom" constant="14" id="UdR-WT-pWS"/>
+                            <constraint firstAttribute="centerX" secondItem="xy7-Sc-xHC" secondAttribute="centerX" id="Xqb-J5-zLP"/>
+                            <constraint firstAttribute="centerX" secondItem="6dN-rW-ekC" secondAttribute="centerX" id="avh-p6-meP"/>
+                            <constraint firstItem="9yU-Ue-1Re" firstAttribute="top" secondItem="Rcq-Sh-53j" secondAttribute="top" constant="44" id="b89-zu-VnO"/>
+                            <constraint firstAttribute="centerX" secondItem="8C4-aJ-jLj" secondAttribute="centerX" id="fVX-ZH-Cis"/>
+                            <constraint firstItem="6dN-rW-ekC" firstAttribute="top" secondItem="UIe-Mo-46M" secondAttribute="bottom" constant="20" id="gkm-Pg-2U9"/>
+                            <constraint firstItem="AfL-5d-7nz" firstAttribute="top" secondItem="QdE-ft-LiG" secondAttribute="bottom" constant="16" id="paX-jM-QGJ"/>
+                            <constraint firstAttribute="centerX" secondItem="5il-Cz-7bJ" secondAttribute="centerX" id="uGs-dR-oRA"/>
+                            <constraint firstItem="QdE-ft-LiG" firstAttribute="top" secondItem="xy7-Sc-xHC" secondAttribute="bottom" constant="16" id="wd1-Vh-Yrt"/>
+                        </constraints>
+                    </view>
+                    <extendedEdge key="edgesForExtendedLayout"/>
+                    <navigationItem key="navigationItem" title="Database" id="221-7t-I0h"/>
+                    <connections>
+                        <outlet property="buildDatabaseButton" destination="9yU-Ue-1Re" id="hnv-gM-nkO"/>
+                        <outlet property="buildingAlbumsListLabel" destination="QdE-ft-LiG" id="LeH-vE-5ea"/>
+                        <outlet property="buildingArtistsListLabel" destination="AfL-5d-7nz" id="h9G-Z3-5Qf"/>
+                        <outlet property="buildingGenresListLabel" destination="UIe-Mo-46M" id="I96-j0-FNg"/>
+                        <outlet property="buildingPlaylistsListLabel" destination="8C4-aJ-jLj" id="oh8-Ac-KtR"/>
+                        <outlet property="buildingSongsListLabel" destination="xy7-Sc-xHC" id="pKS-nH-Uai"/>
+                        <outlet property="operationProgressLabel" destination="6dN-rW-ekC" id="iOV-7x-1nB"/>
+                        <outlet property="progressView" destination="5il-Cz-7bJ" id="WR5-hT-f2Z"/>
+                    </connections>
+                </viewController>
+                <placeholder placeholderIdentifier="IBFirstResponder" id="64V-O8-wXu" userLabel="First Responder" sceneMemberID="firstResponder"/>
+            </objects>
+            <point key="canvasLocation" x="2765" y="1849"/>
+        </scene>
+    </scenes>
+</document>
