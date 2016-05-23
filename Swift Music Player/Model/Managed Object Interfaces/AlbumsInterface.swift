@@ -54,4 +54,10 @@ class AlbumsInterface {
         return albumTracks
     }
     
+    class func isInstrumentalValueForAlbum(album: Album, instrumentalAlbumsArray: Array<NSDictionary>) -> Bool {
+        let dictionary: NSDictionary = ["Artist": album.summary.artistName,
+                                        "Album": album.summary.title]
+        return instrumentalAlbumsArray.indexOf(dictionary) != nil
+    }
+    
 }
