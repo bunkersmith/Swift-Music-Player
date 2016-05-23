@@ -8,7 +8,7 @@
 
 import UIKit
 
-class NowPlayingViewController: UIViewController {
+class NowPlayingViewController: UIViewController, DatabaseProgressDelegate {
 
     @IBOutlet weak var songTitleLabel: MarqueeLabel!
     @IBOutlet weak var artistNameLabel: MarqueeLabel!
@@ -38,28 +38,19 @@ class NowPlayingViewController: UIViewController {
     override func viewWillAppear(animated: Bool) {
         super.viewWillAppear(animated)
 
-/*
-        let databaseInterface = DatabaseInterface(forMainThread: true)
-        if databaseInterface.countOfEntitiesOfType("Song", predicate: nil) == 0 {
-            dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_BACKGROUND, 0), {
-                SongFactory.fillDatabaseSongsFromItunesLibrary()
+        createSongObjects { 
+            self.createAlbumObjects({
+                dispatch_async(dispatch_get_main_queue(), { 
+                    self.song = SongFetcher.fetchSongByTitleArtistAndAlbum("Lonely Boy (LP Version)", artistName: "Andrew Gold", albumTitle: "Thank You For Being a Friend: The Best Of Andrew Gold.")
+                    self.populateUserInterface()
+                    if let songURL = NSKeyedUnarchiver.unarchiveObjectWithData(self.song.assetURL) as? NSURL {
+                        self.audioPlayer = AudioPlayer(url: songURL)
+                        if self.audioPlayer == nil {
+                            Logger.writeToLogFile("Audio player creation failed in \(#function)")
+                        }
+                    }
+                })
             })
-        }
-        if databaseInterface.countOfEntitiesOfType("Album", predicate: nil) == 0 {
-            dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_BACKGROUND, 0), {
-                AlbumFactory.fillDatabaseAlbumsFromItunesLibrary()
-            })
-        } else
-        {
-        }
-*/
-        song = SongFetcher.fetchSongByTitleArtistAndAlbum("A Man For All Seasons", artistName: "Al Stewart", albumTitle: "Time Passages")
-        populateUserInterface()
-        if let songURL = NSKeyedUnarchiver.unarchiveObjectWithData(song.assetURL) as? NSURL {
-            audioPlayer = AudioPlayer(url: songURL)
-            if audioPlayer == nil {
-                NSLog("Audio player creation failed in \(#function)")
-            }
         }
     }
 
@@ -68,22 +59,66 @@ class NowPlayingViewController: UIViewController {
         // Dispose of any resources that can be recreated.
     }
     
+    func progressUpdate(progressFraction:Float, operationType:DatabaseOperationType) {
+        let operationTypeString = DatabaseProgress.databaseOperationTypeToString(operationType)
+        let progressPercentage = progressFraction * 100.0
+        
+        NSLog("\(operationTypeString) progress: \(progressPercentage.string(1, maxFractionDigits: 1))")
+    }
+
+    func createSongObjects(completionHandler: (() -> ())?) {
+        let databaseInterface = DatabaseInterface(forMainThread: NSThread.isMainThread())
+        if databaseInterface.countOfEntitiesOfType("Song", predicate: nil) == 0 {
+            dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_BACKGROUND, 0), {
+                let songFactory = SongFactory()
+                songFactory.delegate = self
+                songFactory.fillDatabaseSongsFromItunesLibrary()
+                completionHandler?()
+            })
+        } else {
+            completionHandler?()
+        }
+    }
+    
+    func createAlbumObjects(completionHandler: (() -> ())?) {
+        let databaseInterface = DatabaseInterface(forMainThread: NSThread.isMainThread())
+        if databaseInterface.countOfEntitiesOfType("Album", predicate: nil) == 0 {
+            dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_BACKGROUND, 0), {
+                let albumFactory = AlbumFactory()
+                albumFactory.delegate = self
+                albumFactory.fillDatabaseAlbumsFromItunesLibrary()
+                completionHandler?()
+            })
+        } else {
+            completionHandler?()
+        }
+    }
+    
     func populateUserInterface() {
         songTitleLabel.configureMarqueeLabel(song.summary.title)
         artistNameLabel.configureMarqueeLabel(song.summary.artistName)
         albumTitleLabel.configureMarqueeLabel(song.albumTitle)
+        trackTimeRemainingLabel.text = "-\(DateTimeUtilities.durationToMinutesAndSecondsString(song.duration))"
+        populateAlbumArtworkImageView()
+        populateAlbumTrackNumber()
+    }
+    
+    func populateAlbumArtworkImageView() {
         if let albumArtwork = song.album?.albumArtwork(DatabaseInterface(forMainThread: true)) {
             if let albumArtworkImage = albumArtwork.imageWithSize(albumArtwork.bounds.size) {
                 let scaledAlbumArtworkImage = albumArtworkImage.scaleToSize(albumArtworkImageView.bounds.size)
                 albumArtworkImageView.image = scaledAlbumArtworkImage
             }
-            
         }
         else {
             albumArtworkImageView.image = UIImage(named: "no-album-artwork.png")!
         }
-        trackTimeRemainingLabel.text = "-\(DateTimeUtilities.durationToMinutesAndSecondsString(song.duration))"
-        
+    }
+    
+    func populateAlbumTrackNumber() {
+        if let album = song.album {
+            trackOfTracksLabel.text = "\(song.trackNumber) of \(album.songs.count)"
+        }
     }
     
     func updatePlayPauseButton(isAudioPlaying: Bool) {
