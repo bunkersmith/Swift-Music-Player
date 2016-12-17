@@ -1,6 +1,6 @@
 //
 //  Artist.swift
-//  MusicByCarlSwift
+//  Swift Music Player
 //
 //  Created by CarlSmith on 8/1/15.
 //  Copyright (c) 2015 CarlSmith. All rights reserved.
@@ -15,41 +15,41 @@ class Artist: NSManagedObject {
     @NSManaged var genres: NSSet
     @NSManaged var summary: ArtistSummary
     
-    func addAlbumsObject(value:Album)
+    func addAlbumsObject(_ value:Album)
     {
-        self.willChangeValueForKey("albums")
+        self.willChangeValue(forKey: "albums")
         let tempSet:NSMutableOrderedSet = NSMutableOrderedSet(orderedSet:self.albums)
-        tempSet.addObject(value)
+        tempSet.add(value)
         self.albums = tempSet
-        self.didChangeValueForKey("albums")
+        self.didChangeValue(forKey: "albums")
     }
     
-    func addAlbumsObjects(values:NSArray)
+    func addAlbumsObjects(_ values:NSArray)
     {
-        self.willChangeValueForKey("albums")
+        self.willChangeValue(forKey: "albums")
         let tempSet:NSMutableOrderedSet = NSMutableOrderedSet(orderedSet:self.albums)
-        tempSet.addObjectsFromArray(values as [AnyObject])
+        tempSet.addObjects(from: values as [AnyObject])
         self.albums = tempSet
-        self.didChangeValueForKey("albums")
+        self.didChangeValue(forKey: "albums")
     }
     
-    func removeAlbumsObject(value:Album)
+    func removeAlbumsObject(_ value:Album)
     {
-        self.willChangeValueForKey("albums")
+        self.willChangeValue(forKey: "albums")
         let tempSet:NSMutableOrderedSet = NSMutableOrderedSet(orderedSet:self.albums)
-        tempSet.removeObject(value)
+        tempSet.remove(value)
         self.albums = tempSet
-        self.didChangeValueForKey("albums")
+        self.didChangeValue(forKey: "albums")
     }
     
-    func removeAlbumsObjects(values:NSArray)
+    func removeAlbumsObjects(_ values:NSArray)
     {
-        self.willChangeValueForKey("albums")
+        self.willChangeValue(forKey: "albums")
         let tempSet:NSMutableOrderedSet = NSMutableOrderedSet(orderedSet:self.albums)
         let valuesSet:NSSet = NSSet(array: values as [AnyObject])
         tempSet.minusSet(valuesSet as Set<NSObject>)
         self.albums = tempSet
-        self.didChangeValueForKey("albums")
+        self.didChangeValue(forKey: "albums")
     }
     
     override var description: String {
@@ -57,12 +57,12 @@ class Artist: NSManagedObject {
         returnValue = returnValue + "\nsummary: \(summary)"
         
         returnValue = returnValue + "\nalbums:"
-        for (_, object) in albums.enumerate() {
+        for (_, object) in albums.enumerated() {
             returnValue = returnValue + "\n\(object as! Album)"
         }
         
         returnValue = returnValue + "\ngenres:"
-        for (_, object) in genres.enumerate() {
+        for (_, object) in genres.enumerated() {
             returnValue = returnValue + "\n\(object as! Genre)"
         }
         

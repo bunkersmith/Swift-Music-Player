@@ -9,8 +9,8 @@
 import Foundation
 
 extension MarqueeLabel {
-    func configureMarqueeLabel(text: String) {
-        textAlignment = .Center
+    func configureMarqueeLabel(_ text: String) {
+        textAlignment = .center
         self.text = text
         marqueeType = .MLContinuous
         rate = 30.0
