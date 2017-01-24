@@ -8,57 +8,61 @@
 
 import MediaPlayer
 
-class PlaylistDatabaseOperations: NSOperation {
+class PlaylistDatabaseOperations: NSObject {
 
-    var delegate:DatabaseProgressDelegate?
+    weak var delegate:DatabaseProgressDelegate?
     
-    override func main() {
+    func start(databaseInterface: DatabaseInterface) {
         let startTime = MillisecondTimer.currentTickCount()
         
-        let playlistsQuery = MPMediaQuery.playlistsQuery()
-        if let playlists = playlistsQuery.collections as? Array<MPMediaPlaylist> {
-            var songIndex = 0
-            let totalPlaylistSongCount = PlaylistsInterface.returnTotalPlaylistsSongCount(playlists)
+        let playlistsQuery = MPMediaQuery.playlists()
+        guard let playlists = playlistsQuery.collections as? Array<MPMediaPlaylist> else {
+            Logger.writeToLogFile("Playlist collections fech failed")
+            delegate?.progressUpdate(1.0, operationType: .playlistOperation)
+            return
+        }
+        
+        var songIndex = 0
+        let totalPlaylistSongCount = PlaylistsInterface.returnTotalPlaylistsSongCount(playlists)
+        
+        let playlistFactory = PlaylistFactory()
+        
+        for playlist:MPMediaPlaylist in playlists {
+            guard playlist.name != nil && playlist.name != "" else {
+                Logger.writeToLogFile("Error retrieving playlist title")
+                delegate?.progressUpdate(1.0, operationType: .playlistOperation)
+                return
+            }
             
-            let databaseInterface = DatabaseInterface(forMainThread: false)
-            let playlistFactory = PlaylistFactory()
-            
-            for playlist:MPMediaPlaylist in playlists {
-                if playlist.name != nil && playlist.name != "" {
-                    if playlist.items.count > 0 {
-                        if var playlistSummary = databaseInterface.newManagedObjectOfType("PlaylistSummary") as? PlaylistSummary {
-                            if var playlistObject = databaseInterface.newManagedObjectOfType("Playlist") as? Playlist {
-                                playlistFactory.populatePlaylistSummary(&playlistSummary, playlistTitle: playlist.name!, playlistPersistentID:playlist.persistentID)
-                                if playlistFactory.populatePlaylist(&playlistObject,
-                                                    playlistSummary: playlistSummary,
-                                                    mediaPlaylist: playlist,
-                                                    songIndex: &songIndex,
-                                                    totalPlaylistSongCount:totalPlaylistSongCount,
-                                                    databaseInterface:databaseInterface,
-                                                    delegate: delegate) {
-                                    databaseInterface.saveContext()
-                                    //Logger.writeToLogFile("\(playlistObject)")
-                                }
-                            }
-                            else {
-                                Logger.writeToLogFile("playlistObject == nil for playlist with title \(playlist.name)")
-                            }
-                        }
-                        else {
-                            Logger.writeToLogFile("playlistSummary == nil for playlist with title \(playlist.name)")
-                        }
-                    }
+            if playlist.items.count > 0 {
+                guard var playlistSummary = databaseInterface.newManagedObjectOfType("PlaylistSummary") as? PlaylistSummary else {
+                    Logger.writeToLogFile("playlistSummary == nil for playlist with title \(playlist.name)")
+                    delegate?.progressUpdate(1.0, operationType: .playlistOperation)
+                    return
                 }
-                else {
-                    Logger.writeToLogFile("Error retrieving playlist title")
+                
+                guard var playlistObject = databaseInterface.newManagedObjectOfType("Playlist") as? Playlist else {
+                    Logger.writeToLogFile("playlistObject == nil for playlist with title \(playlist.name)")
+                    delegate?.progressUpdate(1.0, operationType: .playlistOperation)
+                    return
+                }
+                
+                playlistFactory.populatePlaylistSummary(&playlistSummary, playlistTitle: playlist.name!, playlistPersistentID:playlist.persistentID)
+                if playlistFactory.populatePlaylist(&playlistObject,
+                                    playlistSummary: playlistSummary,
+                                    mediaPlaylist: playlist,
+                                    songIndex: &songIndex,
+                                    totalPlaylistSongCount:totalPlaylistSongCount,
+                                    databaseInterface:databaseInterface,
+                                    delegate: delegate) {
+                    databaseInterface.saveContext()
+                    //Logger.writeToLogFile("\(playlistObject)")
                 }
             }
         }
-        else {
-            Logger.writeToLogFile("Playlist collections fech failed")
-        }
         
-        let playlistSongsCount = PlaylistsInterface.returnTotalCoreDataPlaylistsSongCount(DatabaseInterface(forMainThread: false))
+        let playlistSongsCount = PlaylistsInterface.returnTotalCoreDataPlaylistsSongCount(databaseInterface)
         Logger.writeToLogFile("Playlist List Build Time: \(MillisecondTimer.secondsSince(startTime)) for \(playlistSongsCount) total playlist songs")
     }
 }
+

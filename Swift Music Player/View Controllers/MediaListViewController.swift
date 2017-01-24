@@ -58,6 +58,8 @@ class MediaListViewController: PortraitViewController {
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
 
+        Logger.logDetails(msg:"Entered")
+        
         addScrollAreaView()
         
         mediaItemType = mlvcDelegate?.returnMediaItemType()

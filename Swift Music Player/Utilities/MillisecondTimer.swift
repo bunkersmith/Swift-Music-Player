@@ -1,6 +1,6 @@
 //
 //  MillisecondTimer.swift
-//  MusicByCarlSwift
+//  Swift Music Player
 //
 //  Created by CarlSmith on 6/10/15.
 //  Copyright (c) 2015 CarlSmith. All rights reserved.
@@ -18,7 +18,7 @@ class MillisecondTimer {
         return (machineTime * UInt64(sTimebaseInfo.numer) / 1000000) / UInt64(sTimebaseInfo.denom)
     }
     
-    class func secondsSince(startTime: UInt64) -> Double {
+    class func secondsSince(_ startTime: UInt64) -> Double {
         let stopTime = currentTickCount()
         return Double(stopTime - startTime) / 1000.0
     }

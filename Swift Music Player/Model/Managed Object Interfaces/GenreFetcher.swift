@@ -10,7 +10,7 @@ import MediaPlayer
 
 class GenreFetcher {
     
-    class func fetchGenreSummaryWithPersistentID(persistentID: UInt64, databaseInterface: DatabaseInterface) -> GenreSummary? {
+    class func fetchGenreSummaryWithPersistentID(_ persistentID: UInt64, databaseInterface: DatabaseInterface) -> GenreSummary? {
         let genreSummaries:Array<GenreSummary> = databaseInterface.entitiesOfType("GenreSummary", predicate: NSPredicate(format: "persistentID == %llu", persistentID)) as! Array<GenreSummary>
         if genreSummaries.count == 1 {
             return genreSummaries.first
@@ -19,7 +19,7 @@ class GenreFetcher {
         return nil
     }
     
-    class func fetchGenreSongsWithGenreName(genreName:String, databaseInterface:DatabaseInterface) -> Array<Song>
+    class func fetchGenreSongsWithGenreName(_ genreName:String, databaseInterface:DatabaseInterface) -> Array<Song>
     {
         if let genreSongs = databaseInterface.entitiesOfType("Song", predicate: NSPredicate(format:"genreName == %@", genreName)) as? Array<Song> {
             return genreSongs

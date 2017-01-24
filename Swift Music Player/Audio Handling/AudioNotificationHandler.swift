@@ -1,6 +1,6 @@
 //
 //  AudioNotificationHandler.swift
-//  MusicByCarlSwift
+//  Swift Music Player
 //
 //  Created by CarlSmith on 5/22/16.
 //  Copyright © 2016 CarlSmith. All rights reserved.
@@ -10,107 +10,237 @@ import AVFoundation
 
 class AudioNotificationHandler: NSObject {
     
-    private var shouldResumeAudio:Bool = false
-
+    // Singleton instance
+    static let instance = AudioNotificationHandler()
+    
+    //fileprivate var shouldResumeAudio:Bool = false
+    fileprivate lazy var songManager = SongManager.instance
+    
     func addNotificationObservers() {
-        let notificationCenter = NSNotificationCenter.defaultCenter()
-        notificationCenter.addObserver(self, selector: #selector(routeChanged(_:)), name: AVAudioSessionRouteChangeNotification, object: nil)
-        notificationCenter.addObserver(self, selector:#selector(audioInterrupted(_:)), name:AVAudioSessionInterruptionNotification, object:nil)
-        notificationCenter.addObserver(self, selector:#selector(mediaServicesReset(_:)), name:AVAudioSessionMediaServicesWereResetNotification, object:nil)
+        let notificationCenter = NotificationCenter.default
+        enableDisableRouteChangedObserver(enableFlag: true)
+        enableDisableAudioInterruptionObserver(enableFlag: true)
+        notificationCenter.addObserver(self, selector:#selector(mediaServicesReset(_:)), name:NSNotification.Name.AVAudioSessionMediaServicesWereReset, object:nil)
     }
     
     func removeNotificationObservers() {
-        let notificationCenter = NSNotificationCenter.defaultCenter()
-        notificationCenter.removeObserver(self, name: AVAudioSessionRouteChangeNotification, object: nil)
-        notificationCenter.removeObserver(self, name:AVAudioSessionInterruptionNotification, object:nil)
-        notificationCenter.removeObserver(self, name:AVAudioSessionMediaServicesWereResetNotification, object:nil)
+        let notificationCenter = NotificationCenter.default
+        enableDisableRouteChangedObserver(enableFlag: false)
+        enableDisableAudioInterruptionObserver(enableFlag: false)
+        notificationCenter.removeObserver(self, name:NSNotification.Name.AVAudioSessionMediaServicesWereReset, object:nil)
     }
 
-    func mediaServicesReset(notification: NSNotification)
+    func mediaServicesReset(_ notification: Notification)
     {
-        Logger.writeToLogFile("\(#function) called with notification = \(notification)")
+        Logger.logDetails(msg:"Called with notification = \(notification)")
     }
     
-    func audioInterrupted(notification: NSNotification)
-    {
-        //Logger.writeToLogFile("\(#function) called with notification = \(notification)")
-        
-        if let userInfo:[NSObject:AnyObject] = notification.userInfo {
-            if let interruptionTypeNumber:NSNumber = userInfo[AVAudioSessionInterruptionTypeKey] as? NSNumber {
-                let interruptionTypeInteger = interruptionTypeNumber.unsignedLongValue
-                
-                //Logger.writeToLogFile("interruptionTypeInteger = \(interruptionTypeInteger)")
-                //Logger.writeToLogFile("AVAudioSessionInterruptionType.Began.rawValue = \(AVAudioSessionInterruptionType.Began.rawValue)")
-                //Logger.writeToLogFile("AVAudioSessionInterruptionType.Ended.rawValue = \(AVAudioSessionInterruptionType.Ended.rawValue)")
-                
-                //GlobalVars *globalVarsPtr = [GlobalVars sharedGlobalVars]
-                if interruptionTypeInteger == AVAudioSessionInterruptionType.Began.rawValue {
-                    shouldResumeAudio = true // SongPlayer.instance.isAudioPlaying()
-                    
-                    dispatch_async(dispatch_get_main_queue(), { 
-                        Logger.writeToLogFile("AVSessionManager.audioInterrupted (Began case) sending Swift-Music-Player.updatePlayPauseButton notification (iOS pauses the audio automatically)")
-                        // Audio is paused automatically, so update the pause button
-                        NSNotificationCenter.defaultCenter().postNotificationName("Swift-Music-Player.updatePlayPauseButton", object:self, userInfo:["isPlaying": NSNumber(bool: false)])
-                    })
-                }
-                else {
-                    if interruptionTypeInteger == AVAudioSessionInterruptionType.Ended.rawValue {
-                        if shouldResumeAudio {
-                            shouldResumeAudio = false
-                            if let interruptionOptionsNumber:NSNumber = userInfo[AVAudioSessionInterruptionOptionKey] as? NSNumber {
-                                let interruptionOptionsInteger = interruptionOptionsNumber.unsignedLongValue
-                                
-                                //Logger.writeToLogFile("interruptionOptionsInteger = \(interruptionOptionsInteger)")
-                                //Logger.writeToLogFile("AVAudioSessionInterruptionOptions.OptionShouldResume.rawValue = \(AVAudioSessionInterruptionOptions.ShouldResume.rawValue)")
-                                
-                                if interruptionOptionsInteger == AVAudioSessionInterruptionOptions.ShouldResume.rawValue
-                                {
-                                    let restartTime:dispatch_time_t = dispatch_time(DISPATCH_TIME_NOW, Int64(2) * Int64(NSEC_PER_SEC))
-                                    
-                                    dispatch_after(restartTime, dispatch_get_global_queue(0, 0), { () -> Void in
-                                        // Resume the audio and update the play button
-                                        Logger.writeToLogFile("AVSessionManager.audioInterrupted sending Swift-Music-Player.playAudio notification")
-                                        Logger.writeToLogFile("AVSessionManager.audioInterrupted (Ended case) sending Swift-Music-Player.updatePlayPauseButton notification")
-                                        
-                                        NSNotificationCenter.defaultCenter().postNotificationName("Swift-Music-Player.playAudio", object:self)
-                                        NSNotificationCenter.defaultCenter().postNotificationName("Swift-Music-Player.updatePlayPauseButton", object:self, userInfo:["isPlaying": NSNumber(bool: true)])
-                                    })
-                                }
-                            }
-                        }
-                    }
-                }
-            }
+    func enableDisableRouteChangedObserver(enableFlag: Bool) {
+        let notificationCenter = NotificationCenter.default
+        if enableFlag {
+            notificationCenter.addObserver(self, selector: #selector(routeChanged(_:)), name: NSNotification.Name.AVAudioSessionRouteChange, object: nil)
+        } else {
+            notificationCenter.removeObserver(self, name: NSNotification.Name.AVAudioSessionRouteChange, object: nil)
         }
-        
-        //Logger.writeToLogFile("Leaving \(#function)")
     }
     
-    func routeChanged(notification: NSNotification)
-    {
-        Logger.writeToLogFile("\(#function) called with notification = \(notification)")
+    func enableDisableAudioInterruptionObserver(enableFlag: Bool) {
+        let notificationCenter = NotificationCenter.default
+        if enableFlag {
+            notificationCenter.addObserver(self, selector: #selector(routeChanged(_:)), name: NSNotification.Name.AVAudioSessionInterruption, object: nil)
+        } else {
+            notificationCenter.removeObserver(self, name:NSNotification.Name.AVAudioSessionInterruption, object:nil)
+        }
+    }
+    
+    func routeChangeReasonToString(_ routeChangeReason: AVAudioSessionRouteChangeReason) -> String {
         
-        if let userInfo:[NSObject:AnyObject] = notification.userInfo {
-            if let previousRoute:AVAudioSessionRouteDescription = userInfo[AVAudioSessionRouteChangePreviousRouteKey] as? AVAudioSessionRouteDescription {
-                if let routeChangeReasonNumber:NSNumber = userInfo[AVAudioSessionRouteChangeReasonKey] as? NSNumber {
-                    let routeChangeReasonInteger = routeChangeReasonNumber.unsignedLongValue
-                    if previousRoute.outputs.count > 0 {
-                        if let outputPort:AVAudioSessionPortDescription = previousRoute.outputs.first {
-                            if (outputPort.portType == AVAudioSessionPortHeadphones || outputPort.portType == AVAudioSessionPortBluetoothA2DP) && routeChangeReasonInteger == AVAudioSessionRouteChangeReason.OldDeviceUnavailable.rawValue {
-                                dispatch_async(dispatch_get_main_queue(), {
-                                    Logger.writeToLogFile("AVSessionManager.audioInterrupted sending Swift-Music-Player.pauseAudio notification")
-                                    Logger.writeToLogFile("AVSessionManager.routeChanged sending Swift-Music-Player.updatePlayPauseButton notification")
-                                    
-                                    NSNotificationCenter.defaultCenter().postNotificationName("Swift-Music-Player.pauseAudio", object:self)
-                                    NSNotificationCenter.defaultCenter().postNotificationName("Swift-Music-Player.updatePlayPauseButton", object:self, userInfo:["isPlaying": NSNumber(bool: false)])
-                                })
-                            }
-                        }
-                    }
-                }
-            }
+        switch routeChangeReason {
+            case .unknown:
+                return "Unknown"
+            case .newDeviceAvailable:
+                return "NewDeviceAvailable"
+            case .oldDeviceUnavailable:
+                return "OldDeviceUnavailable"
+            case .categoryChange:
+                return "CategoryChange"
+            case .override:
+                return "Override"
+            case .wakeFromSleep:
+                return "WakeFromSleep"
+            case .noSuitableRouteForCategory:
+                return "NoSuitableRouteForCategory"
+            case .routeConfigurationChange:
+                return "RouteConfigurationChange"
+        }
+    }
+    
+    func audioInterruptionTypeToString(_ interruptionType: AVAudioSessionInterruptionType) -> String {
+        switch interruptionType {
+        case .began:
+            return "Began"
+        case .ended:
+            return "Ended"
+        }
+    }
+    
+    func audioInterrupted(_ notification: Notification)
+    {
+        enableDisableAudioInterruptionObserver(enableFlag: false)
+
+        Logger.logDetails(msg:"Entered")
+        
+        guard let userInfo:[AnyHashable: Any] = (notification as NSNotification).userInfo else {
+            Logger.logDetails(msg:"Notification has no userInfo")
+            enableDisableAudioInterruptionObserver(enableFlag: true)
+            return
         }
         
-        //Logger.writeToLogFile("Leaving \(#function)")
+        guard let interruptionTypeNumber:NSNumber = userInfo[AVAudioSessionInterruptionTypeKey] as? NSNumber else {
+            Logger.logDetails(msg:"Notification has no interruption type number")
+            enableDisableAudioInterruptionObserver(enableFlag: true)
+            return
+        }
+        
+        guard let interruptionType = AVAudioSessionInterruptionType(rawValue: interruptionTypeNumber.uintValue) else {
+            Logger.logDetails(msg:"Notification has no interruption type")
+            enableDisableAudioInterruptionObserver(enableFlag: true)
+            return
+        }
+        
+        Logger.writeToLogFile("interruptionType = \(audioInterruptionTypeToString(interruptionType))")
+        
+        if interruptionType == .began {
+            //shouldResumeAudio = songManager.isAudioPlaying()
+            
+            DispatchQueue.main.async(execute: { 
+                Logger.writeToLogFile("AVSessionManager.audioInterrupted (Began case) sending Swift-Music-Player.audioPaused notification")
+                Logger.writeToLogFile("AVSessionManager.audioInterrupted (Began case) sending Swift-Music-Player.updatePlayPauseButton notification")
+                NotificationCenter.default.post(name: Notification.Name(rawValue: "Swift-Music-Player.audioPaused"), object:self)
+                NotificationCenter.default.post(name: Notification.Name(rawValue: "Swift-Music-Player.updatePlayPauseButton"), object:self, userInfo:["isPlaying": NSNumber(value: false as Bool)])
+                
+                Logger.logDetails(msg:"Leaving audioInterrupted")
+                self.enableDisableAudioInterruptionObserver(enableFlag: true)
+            })
+        }
+        else {
+            guard interruptionType == .ended else {
+                Logger.writeToLogFile("Interruption type is not began or ended")
+                enableDisableAudioInterruptionObserver(enableFlag: true)
+                return
+            }
+            
+/*
+            Logger.writeToLogFile("shouldResumeAudio = \(shouldResumeAudio)")
+            
+            guard shouldResumeAudio else {
+                return
+            }
+        
+            shouldResumeAudio = false
+*/
+            
+            guard let interruptionOptionsNumber:NSNumber = userInfo[AVAudioSessionInterruptionOptionKey] as? NSNumber else {
+                Logger.logDetails(msg:"Notification has no interruption options number")
+                enableDisableAudioInterruptionObserver(enableFlag: true)
+                return
+            }
+            
+            let interruptionOptions = AVAudioSessionInterruptionOptions(rawValue: interruptionOptionsNumber.uintValue)
+            
+            guard interruptionOptions == .shouldResume else {
+                Logger.logDetails(msg:"Notification has no interruption options")
+                enableDisableAudioInterruptionObserver(enableFlag: true)
+                return
+            }
+            
+            Logger.writeToLogFile("interruptionOptions == .ShouldResume")
+            
+            let restartTime:DispatchTime = DispatchTime.now() + Double(Int64(2) * Int64(NSEC_PER_SEC)) / Double(NSEC_PER_SEC)
+            
+            DispatchQueue.global(qos: .default).asyncAfter(deadline: restartTime, execute: { () -> Void in
+                // Resume the audio and update the play button
+                Logger.writeToLogFile("AVSessionManager.audioInterrupted sending Swift-Music-Player.playAudio notification")
+                Logger.writeToLogFile("AVSessionManager.audioInterrupted (Ended case) sending Swift-Music-Player.updatePlayPauseButton notification")
+                
+                NotificationCenter.default.post(name: Notification.Name(rawValue: "Swift-Music-Player.playAudio"), object:self)
+                NotificationCenter.default.post(name: Notification.Name(rawValue: "Swift-Music-Player.updatePlayPauseButton"), object:self, userInfo:["isPlaying": NSNumber(value: true as Bool)])
+                
+                Logger.logDetails(msg:"Leaving audioInterrupted")
+                self.enableDisableAudioInterruptionObserver(enableFlag: true)
+            })
+        }
+    }
+    
+    func routeChanged(_ notification: Notification)
+    {
+        enableDisableRouteChangedObserver(enableFlag: false)
+        
+        //Logger.logDetails(msg:"Entered")
+        
+        guard let userInfo = (notification as NSNotification).userInfo else {
+            Logger.logDetails(msg:"userInfo is nil")
+            enableDisableRouteChangedObserver(enableFlag: true)
+            return
+        }
+        
+        guard let previousRoute = userInfo[AVAudioSessionRouteChangePreviousRouteKey] as? AVAudioSessionRouteDescription else {
+            Logger.logDetails(msg:"previousRoute is nil")
+            enableDisableRouteChangedObserver(enableFlag: true)
+            return
+        }
+        
+        guard let routeChangeReasonNumber = userInfo[AVAudioSessionRouteChangeReasonKey] as? NSNumber else {
+            Logger.logDetails(msg:"routeChangeReasonNumber is nil")
+            enableDisableRouteChangedObserver(enableFlag: true)
+            return
+        }
+        
+        guard let routeChangeReason = AVAudioSessionRouteChangeReason(rawValue: routeChangeReasonNumber.uintValue) else {
+            Logger.logDetails(msg:"routeChangeReason is nil")
+            enableDisableRouteChangedObserver(enableFlag: true)
+            return
+        }
+        
+        guard routeChangeReason == .oldDeviceUnavailable else {
+            Logger.logDetails(msg:"routeChangeReason is not oldDeviceUnavailable")
+            enableDisableRouteChangedObserver(enableFlag: true)
+            return
+        }
+        
+        Logger.writeToLogFile("previousRoute.outputs = \(previousRoute.outputs)")
+        
+        Logger.writeToLogFile("routeChangeReason = \(routeChangeReasonToString(routeChangeReason))")
+        
+        guard previousRoute.outputs.count > 0 else {
+            Logger.logDetails(msg:"No previous route outputs")
+            enableDisableRouteChangedObserver(enableFlag: true)
+            return
+        }
+        
+        guard let previousOutputPort:AVAudioSessionPortDescription = previousRoute.outputs.first else {
+            Logger.logDetails(msg:"previousOutputPort is nil")
+            enableDisableRouteChangedObserver(enableFlag: true)
+            return
+        }
+        
+        Logger.writeToLogFile("previousOutputPort.portType = \(previousOutputPort.portType)")
+        
+        guard (previousOutputPort.portType == AVAudioSessionPortHeadphones || previousOutputPort.portType == AVAudioSessionPortBluetoothA2DP) && routeChangeReason == .oldDeviceUnavailable else {
+            Logger.logDetails(msg:"previousOutputPort type is not Bluetooth or headphones")
+            enableDisableRouteChangedObserver(enableFlag: true)
+            return
+        }
+        
+        DispatchQueue.main.async(execute: {
+            Logger.writeToLogFile("AVSessionManager.routeChanged sending Swift-Music-Player.pauseAudio notification")
+            Logger.writeToLogFile("AVSessionManager.routeChanged sending Swift-Music-Player.updatePlayPauseButton notification")
+            
+            NotificationCenter.default.post(name: Notification.Name(rawValue: "Swift-Music-Player.pauseAudio"), object:self)
+            NotificationCenter.default.post(name: Notification.Name(rawValue: "Swift-Music-Player.updatePlayPauseButton"), object:self, userInfo:["isPlaying": NSNumber(value: false as Bool)])
+            
+            Logger.logDetails(msg:"Leaving routeChanged")
+            self.enableDisableRouteChangedObserver(enableFlag: true)
+        })
     }
 }

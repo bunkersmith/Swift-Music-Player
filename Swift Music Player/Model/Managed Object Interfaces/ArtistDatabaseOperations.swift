@@ -8,39 +8,38 @@
 
 import MediaPlayer
 
-class ArtistDatabaseOperations: NSOperation {
+class ArtistDatabaseOperations: NSObject {
 
-    var delegate:DatabaseProgressDelegate?
+    weak var delegate:DatabaseProgressDelegate?
 
-    override func main() {
+    func start(databaseInterface: DatabaseInterface) {
         let startTime = MillisecondTimer.currentTickCount()
         
         var progressFraction: Float
         
-        let artistsQuery = MPMediaQuery.artistsQuery()
-        artistsQuery.groupingType = .AlbumArtist
-        
-        let databaseInterface = DatabaseInterface(forMainThread: false)
-        
+        let artistsQuery = MPMediaQuery.artists()
+        artistsQuery.groupingType = .albumArtist
+    
         let artistFactory = ArtistFactory()
         
-        if let artistsCollection:[MPMediaItemCollection]? = artistsQuery.collections  {
-            var artistIndex = 0
-            
-            for artistCollection:MPMediaItemCollection in artistsCollection!
-            {
-                artistFactory.processArtistMediaItem(artistCollection.representativeItem!, databaseInterface:databaseInterface)
-                
-                if artistIndex % 10 == 0 || artistIndex == artistsCollection!.count - 1 {
-                    progressFraction = Float(artistIndex + 1) / Float(artistsCollection!.count)
-                    delegate?.progressUpdate(progressFraction, operationType: .ArtistOperation)
-                }
-                
-                artistIndex += 1
-            }
-        }
-        else {
+        guard let artistsCollection:[MPMediaItemCollection] = artistsQuery.collections else {
             Logger.writeToLogFile("Artists query failed")
+            delegate?.progressUpdate(1.0, operationType: .artistOperation)
+            return
+        }
+        
+        var artistIndex = 0
+        
+        for artistCollection:MPMediaItemCollection in artistsCollection
+        {
+            artistFactory.processArtistMediaItem(artistCollection.representativeItem!, databaseInterface:databaseInterface)
+            
+            if artistIndex % 10 == 0 || artistIndex == artistsCollection.count - 1 {
+                progressFraction = Float(artistIndex + 1) / Float(artistsCollection.count)
+                self.delegate?.progressUpdate(progressFraction, operationType: .artistOperation)
+            }
+            
+            artistIndex += 1
         }
         
         let artistCount = databaseInterface.countOfEntitiesOfType("Artist", predicate: nil)

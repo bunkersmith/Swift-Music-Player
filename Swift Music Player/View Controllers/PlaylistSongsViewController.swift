@@ -19,7 +19,15 @@ class PlaylistSongsViewController: MediaListViewController, MediaListVCDelegate 
     
     override func encodeRestorableState(with coder: NSCoder) {
         super.encodeRestorableState(with: coder)
+        guard let playlistPersistentID = playlistPersistentID else {
+            Logger.logDetails(msg: "Found a nil playlistPersistentID")
+            return
+        }
         coder.encode(NSNumber(value: playlistPersistentID as UInt64), forKey: "playlistPersistentID")
+        guard let playlistTitle = playlistTitle else {
+            Logger.logDetails(msg: "Found a nil playlistTitle")
+            return
+        }
         coder.encode(playlistTitle, forKey: "playlistTitle")
     }
     
@@ -38,6 +46,8 @@ class PlaylistSongsViewController: MediaListViewController, MediaListVCDelegate 
 
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
+        
+        Logger.logDetails(msg:"Entered")
         
         if SongManager.instance.song != nil {
             nowPlayingButton.show()
@@ -94,7 +104,7 @@ class PlaylistSongsViewController: MediaListViewController, MediaListVCDelegate 
         sectionNameKeyPath = "indexCharacter"
         
         guard let playlistPersistentID = self.playlistPersistentID else {
-            Logger.writeToLogFile("\(type(of: self)).\(#function) detected a nil self.playlistPersistentID")
+            Logger.logDetails(msg:"detected a nil self.playlistPersistentID")
             return
         }
         predicate = NSPredicate(format:"ANY inPlaylists.summary.persistentID == %llu", playlistPersistentID)
@@ -108,6 +118,8 @@ class PlaylistSongsViewController: MediaListViewController, MediaListVCDelegate 
     
     // In a storyboard-based application, you will often want to do a little preparation before navigation
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
+        Logger.logDetails(msg:"Entered")
+        
         if segue.identifier != "nowPlayingSegue" {
             if let nowPlayingViewController:NowPlayingViewController = segue.destination as? NowPlayingViewController {
                 nowPlayingViewController.songNeedsPlaying = true

@@ -1,45 +1,51 @@
 //
 //  DatabaseProgress.swift
-//  MusicByCarlSwift
+//  Swift Music Player
 //
 //  Created by CarlSmith on 6/9/15.
 //  Copyright (c) 2015 CarlSmith. All rights reserved.
 //
 
 enum DatabaseOperationType {
-    case SongOperation
-    case AlbumOperation
-    case ArtistOperation
-    case PlaylistOperation
-    case GenreOperation
+    case songOperation
+    case albumOperation
+    case artistOperation
+    case playlistOperation
+    case genreOperation
+    
+    static let allValues = [songOperation,
+                            albumOperation,
+                            artistOperation,
+                            playlistOperation,
+                            genreOperation]
 }
 
-protocol DatabaseProgressDelegate {
-    func progressUpdate(progressFraction:Float, operationType:DatabaseOperationType)
+protocol DatabaseProgressDelegate: class {
+    func progressUpdate(_ progressFraction:Float, operationType:DatabaseOperationType)
 }
 
 class DatabaseProgress {
-    class func databaseOperationTypeToString(operationType:DatabaseOperationType) -> String {
+    class func databaseOperationTypeToString(_ operationType:DatabaseOperationType) -> String {
         var returnValue:String = "Unknown"
         
         switch operationType {
-            case .SongOperation:
+            case .songOperation:
                 returnValue = "Song"
             break
             
-            case .AlbumOperation:
+            case .albumOperation:
                 returnValue = "Album"
             break
             
-            case .ArtistOperation:
+            case .artistOperation:
                 returnValue = "Artist"
             break
             
-            case .PlaylistOperation:
+            case .playlistOperation:
                 returnValue = "Playlist"
             break
             
-            case .GenreOperation:
+            case .genreOperation:
                 returnValue = "Genre"
             break
         }

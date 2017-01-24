@@ -10,11 +10,9 @@ import Foundation
 import MediaPlayer
 
 class SongFactory {
-
-    var delegate:DatabaseProgressDelegate?
     
-    func populateSongSummary(inout songSummary:SongSummary, mediaItem:MPMediaItem) {
-        songSummary.artistName = MediaObjectUtilities.anyObjectToStringOrEmptyString(mediaItem.artist)
+    func populateSongSummary(_ songSummary:inout SongSummary, mediaItem:MPMediaItem) {
+        songSummary.artistName = MediaObjectUtilities.anyObjectToStringOrEmptyString(mediaItem.artist as AnyObject?)
         songSummary.title = mediaItem.title!
         songSummary.searchKey = songSummary.title
         songSummary.strippedTitle = MediaObjectUtilities.returnMediaObjectStrippedString(songSummary.title)
@@ -23,66 +21,16 @@ class SongFactory {
         songSummary.lastPlayedTime = 0
     }
     
-    func populateSong(inout song:Song, songURL:NSURL, songSummary:SongSummary, mediaItem:MPMediaItem, databaseInterface: DatabaseInterface) {
+    func populateSong(_ song:inout Song, songURL:URL, songSummary:SongSummary, mediaItem:MPMediaItem, databaseInterface: DatabaseInterface) {
         song.albumPersistentID = mediaItem.albumPersistentID
-        song.assetURL = NSKeyedArchiver.archivedDataWithRootObject(songURL)
+        song.assetURL = NSKeyedArchiver.archivedData(withRootObject: songURL)
         song.duration = mediaItem.playbackDuration
-        song.albumArtistName = MediaObjectUtilities.anyObjectToStringOrEmptyString(mediaItem.albumArtist)
-        song.albumTitle = MediaObjectUtilities.anyObjectToStringOrEmptyString(mediaItem.albumTitle)
-        song.genreName = MediaObjectUtilities.anyObjectToStringOrEmptyString(mediaItem.genre)
+        song.albumArtistName = MediaObjectUtilities.anyObjectToStringOrEmptyString(mediaItem.albumArtist as AnyObject?)
+        song.albumTitle = MediaObjectUtilities.anyObjectToStringOrEmptyString(mediaItem.albumTitle as AnyObject?)
+        song.genreName = MediaObjectUtilities.anyObjectToStringOrEmptyString(mediaItem.genre as AnyObject?)
         song.trackNumber = UInt64(mediaItem.albumTrackNumber)
         songSummary.persistentKey = SongsInterface.persistentKeyForSong(song, songSummary: songSummary, databaseInterface: databaseInterface)
         song.summary = songSummary
     }
-
     
-    // THIS METHOD MUST BE CALLED FROM A BACKGROUND THREAD TO AVOID BLOCKING THE UI
-    func fillDatabaseSongsFromItunesLibrary() {
-        guard !NSThread.isMainThread() else { return }
-        
-        let startTime = MillisecondTimer.currentTickCount()
-        
-        let databaseInterface = DatabaseInterface(forMainThread: false)
-        
-        var progressFraction:Float
-        
-        // Fill in the all songs array with all the songs in the user's media library
-        let allSongsQuery = MPMediaQuery.songsQuery()
-        if let mediaLibrarySongsArray:[MPMediaItem]? = allSongsQuery.items {
-            var songIndex:Int = 0
-            
-            for currentMediaItem:MPMediaItem in mediaLibrarySongsArray!
-            {
-                if currentMediaItem.assetURL != nil {
-                    if var currentSongSummary = databaseInterface.newManagedObjectOfType("SongSummary") as? SongSummary {
-                        if var currentSong = databaseInterface.newManagedObjectOfType("Song") as? Song {
-                            populateSongSummary(&currentSongSummary, mediaItem: currentMediaItem)
-                            populateSong(&currentSong, songURL: currentMediaItem.assetURL!, songSummary: currentSongSummary, mediaItem: currentMediaItem, databaseInterface: databaseInterface)
-                            databaseInterface.saveContext()
-                        }
-                        else {
-                            Logger.writeToLogFile("currentSong == nil for song with " + MediaObjectUtilities.titleAndArtistStringForMediaItem(currentMediaItem))
-                        }
-                    }
-                    else {
-                        Logger.writeToLogFile("currentSongSummary == nil for song with  " + MediaObjectUtilities.titleAndArtistStringForMediaItem(currentMediaItem))
-                    }
-                }
-                else {
-                    Logger.writeToLogFile("currentMediaItem.assetURL == nil for song with  " + MediaObjectUtilities.titleAndArtistStringForMediaItem(currentMediaItem))
-                }
-                
-                if songIndex % 20 == 0 || songIndex == mediaLibrarySongsArray!.count - 1 {
-                    progressFraction = Float(songIndex + 1) / Float(mediaLibrarySongsArray!.count)
-                    delegate?.progressUpdate(progressFraction, operationType: .SongOperation)
-                }
-                
-                songIndex+=1
-            }
-        }
-        
-        Logger.writeToLogFile("Song List Build Time: \(MillisecondTimer.secondsSince(startTime))") // was %.3f
-        
-        //[[NSNotificationCenter defaultCenter] postNotificationName:@"Swift-Music-Player.AllSongsTableNeedsReloadNotification" object:self userInfo:nil)
-    }
 }

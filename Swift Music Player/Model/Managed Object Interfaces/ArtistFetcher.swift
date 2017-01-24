@@ -9,7 +9,7 @@
 import MediaPlayer
 
 class ArtistFetcher {
-    class func fetchArtistSummaryWithPersistentID(persistentID: UInt64, databaseInterface:DatabaseInterface) -> ArtistSummary? {
+    class func fetchArtistSummaryWithPersistentID(_ persistentID: UInt64, databaseInterface:DatabaseInterface) -> ArtistSummary? {
         let artistSummaries:Array<ArtistSummary> = databaseInterface.entitiesOfType("ArtistSummary", predicate: NSPredicate(format: "persistentID == %llu", persistentID)) as! Array<ArtistSummary>
         if artistSummaries.count == 1 {
             return artistSummaries.first
@@ -18,39 +18,46 @@ class ArtistFetcher {
         return nil
     }
     
-    class func fetchArtistWithName(artistName: String, databaseInterface:DatabaseInterface) -> Artist?
+    class func fetchArtistWithName(_ artistName: String, databaseInterface:DatabaseInterface) -> Artist?
     {
-        if let artistObjects = databaseInterface.entitiesOfType("Artist", predicate:NSPredicate(format:"summary.name == %@", artistName)) as? Array<Artist> {
-            if artistObjects.count == 1 {
-                return artistObjects.first
-            }
+        guard let artistObjects = databaseInterface.entitiesOfType("Artist", predicate:NSPredicate(format:"summary.name == %@", artistName)) as? Array<Artist> else {
+            return nil
         }
-        return nil
+        
+        guard artistObjects.count == 1 else {
+            return nil
+        }
+        
+        return artistObjects.first
     }
     
-    class func fetchMediaLibraryArtistAlbums(artistPersistentID: UInt64) -> Array<MPMediaItemCollection>
+    class func fetchMediaLibraryArtistAlbums(_ artistPersistentID: UInt64) -> Array<MPMediaItemCollection>
     {
-        let artistAlbumsQuery = MPMediaQuery.albumsQuery()
-        let albumPredicate = MPMediaPropertyPredicate(value: NSNumber(unsignedLongLong: artistPersistentID), forProperty: MPMediaItemPropertyAlbumArtistPersistentID)
+        let artistAlbumsQuery = MPMediaQuery.albums()
+        let albumPredicate = MPMediaPropertyPredicate(value: NSNumber(value: artistPersistentID as UInt64), forProperty: MPMediaItemPropertyAlbumArtistPersistentID)
         artistAlbumsQuery.addFilterPredicate(albumPredicate)
         
-        if let artistAlbums:[MPMediaItemCollection]? = artistAlbumsQuery.collections {
-            return artistAlbums!
+        if let artistAlbums:[MPMediaItemCollection] = artistAlbumsQuery.collections {
+            return artistAlbums
         }
         Logger.writeToLogFile("Zero album media items returned for artist with persistentID \(artistPersistentID)")
         return Array<MPMediaItemCollection>()
     }
     
-    class func fetchArtistAlbumsWithArtistPersistentID(artistPersistentID: UInt64, databaseInterface:DatabaseInterface) -> Array<Album>
+    class func fetchArtistAlbumsWithArtistPersistentID(_ artistPersistentID: UInt64, databaseInterface:DatabaseInterface) -> Array<Album>
     {
-        if var artistAlbums:Array<Album> = databaseInterface.entitiesOfType("Album", predicate: NSPredicate(format:"artistPersistentID == %llu", artistPersistentID)) as? Array<Album> {
-            if artistAlbums.count > 0 {
-                artistAlbums = artistAlbums.sort({$0.summary.title < $1.summary.title})
-                return artistAlbums
-            }
+        guard var artistAlbums:Array<Album> = databaseInterface.entitiesOfType("Album", predicate: NSPredicate(format:"artistPersistentID == %llu", artistPersistentID)) as? Array<Album> else {
+            Logger.writeToLogFile("Zero albums returned for artist with persistentID \(artistPersistentID)")
+            return Array<Album>()
         }
-        Logger.writeToLogFile("Zero albums returned for artist with persistentID \(artistPersistentID)")
-        return Array<Album>()
+        
+        guard artistAlbums.count > 0 else {
+            Logger.writeToLogFile("Zero albums returned for artist with persistentID \(artistPersistentID)")
+            return Array<Album>()
+        }
+        
+        artistAlbums = artistAlbums.sorted(by: {$0.summary.title < $1.summary.title})
+        return artistAlbums
     }
     
 }

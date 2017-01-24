@@ -1,6 +1,6 @@
 //
 //  DatabaseManager.swift
-//  MusicByCarlSwift
+//  Swift Music Player
 //
 //  Created by CarlSmith on 7/25/14.
 //  Copyright (c) 2014 CarlSmith. All rights reserved.
@@ -12,13 +12,9 @@ import CoreData
 class DatabaseManager : NSObject {
     var databaseBuildInProgress:Bool = false
     
-    class var instance: DatabaseManager {
-    struct Singleton {
-        static let instance = DatabaseManager()
-        }
-        return Singleton.instance
-    }
-    
+    // Singleton instance
+    static let instance = DatabaseManager()
+
     func returnPersistentStoreCoordinator() -> NSPersistentStoreCoordinator {
         return storeCoordinator
     }
@@ -27,22 +23,16 @@ class DatabaseManager : NSObject {
         return mainContext
     }
     
-    lazy private var storeURL:NSURL = {
-        return self.applicationDocumentsDirectory.URLByAppendingPathComponent("MusicByCarlSwift.sqlite")
+    lazy fileprivate var storeURL:URL = {
+        return self.applicationDocumentsDirectory.appendingPathComponent("MusicByCarlSwift.sqlite")
     }()
     
-    lazy private var modelURL:NSURL = {
-        if var returnValue = NSBundle.mainBundle().URLForResource("MusicByCarlSwift", withExtension: "momd") {
-            return returnValue
-        }
-        else {
-            Logger.writeToLogFile("Could not retrieve model URL")
-            return NSURL()
-        }
-    }()
+    lazy fileprivate var modelURL:URL = {
+        return Bundle.main.url(forResource: "MusicByCarlSwift", withExtension: "momd") 
+    }()!
 
-    lazy private var model:NSManagedObjectModel = {
-        if var returnValue = NSManagedObjectModel(contentsOfURL: self.modelURL) {
+    lazy fileprivate var model:NSManagedObjectModel = {
+        if var returnValue = NSManagedObjectModel(contentsOf: self.modelURL) {
             return returnValue
         }
         else {
@@ -51,15 +41,15 @@ class DatabaseManager : NSObject {
         }
     }()
 
-    lazy private var storeCoordinator:NSPersistentStoreCoordinator = {
+    lazy fileprivate var storeCoordinator:NSPersistentStoreCoordinator = {
         let storeCoordinator = NSPersistentStoreCoordinator(managedObjectModel:self.model)
         
         let options = [NSMigratePersistentStoresAutomaticallyOption : 1, NSInferMappingModelAutomaticallyOption : 1]
         var error: NSError?
         
         do {
-            try storeCoordinator.addPersistentStoreWithType(NSSQLiteStoreType,
-                        configuration: nil, URL: self.storeURL, options: options)
+            try storeCoordinator.addPersistentStore(ofType: NSSQLiteStoreType,
+                        configurationName: nil, at: self.storeURL, options: options)
         } catch var error1 as NSError {
             error = error1
                 Logger.writeToLogFile("Error adding persistent store to store coordinator: \(error)")
@@ -71,15 +61,15 @@ class DatabaseManager : NSObject {
         return storeCoordinator
     }()
     
-    lazy private var mainContext:NSManagedObjectContext = {
-        let mainContext = NSManagedObjectContext(concurrencyType: NSManagedObjectContextConcurrencyType.MainQueueConcurrencyType)
+    lazy fileprivate var mainContext:NSManagedObjectContext = {
+        let mainContext = NSManagedObjectContext(concurrencyType: NSManagedObjectContextConcurrencyType.mainQueueConcurrencyType)
         mainContext.persistentStoreCoordinator = self.storeCoordinator
         return mainContext
     }()
     
-    lazy private var applicationDocumentsDirectory: NSURL = {
+    lazy fileprivate var applicationDocumentsDirectory: URL = {
         // The directory the application uses to store the Core Data store file.
-        let urls = NSFileManager.defaultManager().URLsForDirectory(.DocumentDirectory, inDomains: .UserDomainMask)
+        let urls = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)
         return urls[urls.count-1]
     }()
 }

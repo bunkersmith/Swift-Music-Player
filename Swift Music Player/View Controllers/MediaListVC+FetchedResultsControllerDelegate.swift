@@ -28,7 +28,7 @@ extension MediaListViewController: NSFetchedResultsControllerDelegate {
     
     func controller(_ controller: NSFetchedResultsController<NSFetchRequestResult>, didChange anObject: Any, at indexPath: IndexPath?, for type: NSFetchedResultsChangeType, newIndexPath: IndexPath?) {
         /*
-         Logger.writeToLogFile("controller.didChangeObject called")
+         Logger.logDetails(msg: "Entered")
          Logger.writeToLogFile("anObject = \(anObject)")
          if indexPath != nil {
          Logger.writeToLogFile("indexPath = \(indexPath)")

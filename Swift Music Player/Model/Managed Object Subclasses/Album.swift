@@ -1,6 +1,6 @@
 //
 //  Album.swift
-//  MusicByCarlSwift
+//  Swift Music Player
 //
 //  Created by CarlSmith on 8/1/15.
 //  Copyright (c) 2015 CarlSmith. All rights reserved.
@@ -23,55 +23,55 @@ class Album: NSManagedObject {
     @NSManaged var summary: AlbumSummary
 
     
-    func addSongsObject(value:Song)
+    func addSongsObject(_ value:Song)
     {
-        self.willChangeValueForKey("songs")
+        self.willChangeValue(forKey: "songs")
         let tempSet:NSMutableOrderedSet = NSMutableOrderedSet(orderedSet:self.songs)
-        tempSet.addObject(value)
+        tempSet.add(value)
         self.songs = tempSet
-        self.didChangeValueForKey("songs")
+        self.didChangeValue(forKey: "songs")
     }
     
-    func addSongsObjects(values:NSArray)
+    func addSongsObjects(_ values:NSArray)
     {
-        self.willChangeValueForKey("songs")
+        self.willChangeValue(forKey: "songs")
         let tempSet:NSMutableOrderedSet = NSMutableOrderedSet(orderedSet:self.songs)
-        tempSet.addObjectsFromArray(values as [AnyObject])
+        tempSet.addObjects(from: values as [AnyObject])
         self.songs = tempSet
-        self.didChangeValueForKey("songs")
+        self.didChangeValue(forKey: "songs")
     }
     
-    func removeSongsObject(value:Song)
+    func removeSongsObject(_ value:Song)
     {
-        self.willChangeValueForKey("songs")
+        self.willChangeValue(forKey: "songs")
         let tempSet:NSMutableOrderedSet = NSMutableOrderedSet(orderedSet:self.songs)
-        tempSet.removeObject(value)
+        tempSet.remove(value)
         self.songs = tempSet
-        self.didChangeValueForKey("songs")
+        self.didChangeValue(forKey: "songs")
     }
     
-    func removeSongsObjects(values:NSArray)
+    func removeSongsObjects(_ values:NSArray)
     {
-        self.willChangeValueForKey("songs")
+        self.willChangeValue(forKey: "songs")
         let tempSet:NSMutableOrderedSet = NSMutableOrderedSet(orderedSet:self.songs)
-        tempSet.removeObjectsInArray(values as [AnyObject])
+        tempSet.removeObjects(in: values as [AnyObject])
         self.songs = tempSet
-        self.didChangeValueForKey("songs")
+        self.didChangeValue(forKey: "songs")
     }
     
-    func albumArtwork(databaseInterface:DatabaseInterface) -> MPMediaItemArtwork? {
+    func albumArtwork(_ databaseInterface:DatabaseInterface) -> MPMediaItemArtwork? {
         var albumArtwork:MPMediaItemArtwork? = nil
         
         if songs.count > 0 {
             let firstAlbumTrackSong = songs.firstObject as! Song
             var firstAlbumTrackMediaItem:MPMediaItem
             
-            let songQuery = MPMediaQuery.songsQuery()
-            songQuery.addFilterPredicate(MPMediaPropertyPredicate(value: NSNumber(unsignedLongLong: firstAlbumTrackSong.summary.persistentID), forProperty: MPMediaItemPropertyPersistentID))
-            if let queriedSongs:Array<MPMediaItem>? = songQuery.items {
-                if queriedSongs!.count == 1 {
-                    firstAlbumTrackMediaItem = queriedSongs!.first!
-                    albumArtwork = firstAlbumTrackMediaItem.valueForProperty(MPMediaItemPropertyArtwork) as? MPMediaItemArtwork
+            let songQuery = MPMediaQuery.songs()
+            songQuery.addFilterPredicate(MPMediaPropertyPredicate(value: NSNumber(value: firstAlbumTrackSong.summary.persistentID as UInt64), forProperty: MPMediaItemPropertyPersistentID))
+            if let queriedSongs:Array<MPMediaItem> = songQuery.items {
+                if queriedSongs.count == 1 {
+                    firstAlbumTrackMediaItem = queriedSongs.first!
+                    albumArtwork = firstAlbumTrackMediaItem.value(forProperty: MPMediaItemPropertyArtwork) as? MPMediaItemArtwork
                 }
             }
         }
@@ -81,17 +81,17 @@ class Album: NSManagedObject {
     override var description: String {
         var returnValue = "***** ALBUM *****"
         returnValue = returnValue + "\nsummary: \(summary)"
-        returnValue = returnValue + "\nduration: \(DateTimeUtilities.durationToMinutesAndSecondsString(duration)) (\(duration))" // was %.0f
-        returnValue = returnValue + "\nisInstrumental: \(isInstrumental.boolValue)"
+        returnValue = returnValue + "\nduration: \(DateTimeUtilities.durationToMinutesAndSecondsString(duration)) (\(duration))"
+        returnValue = returnValue + "\nisInstrumental: \(isInstrumental)"
         returnValue = returnValue + "\nreleaseYearString: " + releaseYearString
-        returnValue = returnValue + "\npersistentKey: \(persistentKey)" // was %llu
+        returnValue = returnValue + "\npersistentKey: \(persistentKey)"
         returnValue = returnValue + "\ninternalID: \(internalID)"
-        returnValue = returnValue + "\nartistPersistentID: \(artistPersistentID)" // was %llu
+        returnValue = returnValue + "\nartistPersistentID: \(artistPersistentID)"
         if artist != nil {
             returnValue = returnValue + "\nartist: \(artist!.summary.name)"
         }
         returnValue = returnValue + "\nsongs:"
-        for (_, object) in songs.enumerate() {
+        for (_, object) in songs.enumerated() {
             let song = object as! Song
             if song.summary.artistName == song.albumArtistName {
                 returnValue = returnValue + "\n\(song.summary.title)"

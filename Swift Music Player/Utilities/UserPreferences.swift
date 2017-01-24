@@ -1,6 +1,6 @@
 //
 //  UserPreferences.swift
-//  MusicByCarlSwift
+//  Swift Music Player
 //
 //  Created by CarlSmith on 6/25/15.
 //  Copyright (c) 2015 CarlSmith. All rights reserved.
@@ -10,9 +10,11 @@ import UIKit
 
 class UserPreferences: NSObject {
     
-    private var shuffleFlag:Bool!
-    private var volumeLevel:Float!
-    private(set) var instrumentalAlbums:Array<NSDictionary>!
+    fileprivate var shuffleFlag:Bool!
+    fileprivate var volumeLevel:Float!
+    fileprivate(set) var instrumentalAlbums:Array<NSDictionary>!
+    
+    fileprivate lazy var userDefaults = UserDefaults.standard
     
     override init() {
         super.init()
@@ -21,10 +23,10 @@ class UserPreferences: NSObject {
     
     func readDefaultValues()
     {
-        if let path = NSBundle.mainBundle().pathForResource("DefaultValues", ofType: "plist") {
+        if let path = Bundle.main.path(forResource: "DefaultValues", ofType: "plist") {
             if let preferencesDictionary = NSDictionary(contentsOfFile: path) {
-                NSUserDefaults.standardUserDefaults().registerDefaults(preferencesDictionary as! [String : AnyObject])
-                NSUserDefaults.standardUserDefaults().synchronize()
+                userDefaults.register(defaults: preferencesDictionary as! [String : AnyObject])
+                let _ = synchronize()
             }
         }
     }
@@ -33,48 +35,64 @@ class UserPreferences: NSObject {
     {
         readDefaultValues()
     
-        let userDefaults = NSUserDefaults.standardUserDefaults()
-    
-        if let shuffleFlagNumber = userDefaults.valueForKey("shuffleFlag") as? NSNumber {
+        if let shuffleFlagNumber = userDefaults.value(forKey: "shuffleFlag") as? NSNumber {
             shuffleFlag = shuffleFlagNumber.boolValue
         }
-        if let instrumentalAlbumsArray:AnyObject = userDefaults.valueForKey("instrumentalAlbums") {
+        if let instrumentalAlbumsArray:AnyObject = userDefaults.value(forKey: "instrumentalAlbums") as AnyObject? {
             instrumentalAlbums = instrumentalAlbumsArray as! Array<NSDictionary>
         }
-        if let volumeLevelNumber = userDefaults.valueForKey("volumeLevel") as? NSNumber {
+        if let volumeLevelNumber = userDefaults.value(forKey: "volumeLevel") as? NSNumber {
             volumeLevel = volumeLevelNumber.floatValue
         }
     }
 
+    func synchronize() -> Bool {
+        let returnValue = userDefaults.synchronize()
+        
+        if !returnValue {
+            Logger.writeToLogFile("NSUserDefaults.synchronize failed")
+        }
+        
+        return returnValue
+    }
+    
     func volumeLevelValue() -> Float {
         return volumeLevel
     }
     
-    func changeVolumeLevel(newValue: Float) -> Bool {
+    func changeVolumeLevel(_ newValue: Float) {
         volumeLevel = newValue
-        let userDefaults = NSUserDefaults.standardUserDefaults()
-        userDefaults.setObject(NSNumber(float: volumeLevel), forKey:"volumeLevel")
+
+        userDefaults.set(NSNumber(value: volumeLevel as Float), forKey:"volumeLevel")
         
-        return userDefaults.synchronize()
+        let _ = synchronize()
     }
     
     func shuffleFlagValue() -> Bool {
         return shuffleFlag
     }
     
-    func toggleShuffleFlagSetting() -> Bool {
-        shuffleFlag = !shuffleFlag
-        let userDefaults = NSUserDefaults.standardUserDefaults()
-        userDefaults.setObject(NSNumber(bool: shuffleFlag), forKey:"shuffleFlag")
+    func toggleShuffleFlagSetting() {
+        Logger.logDetails(msg:"called with shuffleFlag = \(shuffleFlag)")
         
-        return userDefaults.synchronize()
+        shuffleFlag = !shuffleFlag
+
+        userDefaults.set(shuffleFlag, forKey: "shuffleFlag")
+        
+        Logger.logDetails(msg:"Leaving with shuffleFlag = \(shuffleFlag)")
+        
+        let _ = synchronize()
     }
     
-    func changeShuffleFlagSetting(newValue: Bool) -> Bool {
-        shuffleFlag = newValue
-        let userDefaults = NSUserDefaults.standardUserDefaults()
-        userDefaults.setObject(NSNumber(bool: shuffleFlag), forKey:"shuffleFlag")
+    func changeShuffleFlagSetting(_ newValue: Bool) {
+        Logger.logDetails(msg:"called with newValue = \(newValue)")
         
-        return userDefaults.synchronize()
+        shuffleFlag = newValue
+
+        userDefaults.set(shuffleFlag, forKey: "shuffleFlag")
+        
+        Logger.writeToLogFile("Leaving with shuffleFlag = \(shuffleFlag)")
+        
+        let _ = synchronize()
     }
 }

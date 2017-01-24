@@ -21,6 +21,9 @@ class MoreViewController: PortraitViewController, UITableViewDataSource, UITable
     override func viewDidLoad() {
         super.viewDidLoad()
         
+        if SongsInterface.totalSongCount() == 0 {
+            performSegue(withIdentifier: "databaseSegue", sender: self)
+        }
     }
     
     override func viewWillAppear(_ animated: Bool) {

@@ -25,40 +25,76 @@ class SongManager: NSObject, AVAudioPlayerDelegate {
 
     fileprivate lazy var notificationCenter = NotificationCenter.default
 
+    fileprivate var archivedElapsedTime:TimeInterval = 0
+    
     // Singleton instance
-    static let instance = SongManager.loadInstance()
+    static var instance = SongManager.loadInstance()
     
     fileprivate class func loadInstance() -> SongManager
     {
-        if let songManagerData:SongManager = NSKeyedUnarchiver.unarchiveObject(withFile: FileUtilities.songManagerArchiveFilePath()) as? SongManager {
-            return songManagerData
+        Logger.logDetails(msg: "Entered")
+        
+        /*
+            if let songManagerData:SongManager = NSKeyedUnarchiver.unarchiveObject(withFile: FileUtilities.songManagerArchiveFilePath()) as? SongManager {
+                return songManagerData
+            }
+            return SongManager()
+        */
+        
+        let archiveFileUrl = URL(fileURLWithPath:FileUtilities.songManagerArchiveFilePath())
+        
+        let fileExists = (try? archiveFileUrl.checkResourceIsReachable()) ?? false
+        Logger.writeToLogFile("archiveFileUrl = \(archiveFileUrl), exists = \(fileExists)")
+        
+        // This guard is failing into the else condition
+        
+        guard let dat = NSData(contentsOf: archiveFileUrl) else {
+            Logger.logDetails(msg: "No NSData, returning empty SongManager")
+            return SongManager()
         }
-        return SongManager()
+        
+        do {
+            let decodedDataObject = try NSKeyedUnarchiver.unarchiveTopLevelObjectWithData(dat)
+            guard let songManager = decodedDataObject as? SongManager else {
+                Logger.logDetails(msg: "Could not decode NSData, returning empty SongManager")
+                return SongManager()
+            }
+            return songManager
+        }
+        catch let error as NSError {
+            Logger.logDetails(msg: "Returning empty SongManager after NSKeyedUnarchiver error \(error)")
+            return SongManager()
+        }
     }
     
     fileprivate override init() {
         super.init()
         
-        NSLog("\(type(of: self)).\(#function) called with NSThread.isMainThread() = \(Thread.isMainThread)")
+        //Logger.logDetails(msg:"called with NSThread.isMainThread() = \(Thread.isMainThread)")
         addNotificationObservers()
     }
     
     required init?(coder aDecoder: NSCoder) {
         super.init()
+
+        Logger.logDetails(msg: "Entered")
         
         guard let songPersistentIDNumber = aDecoder.decodeObject(forKey: "songPersistentID") as? NSNumber else {
-            Logger.writeToLogFile("\(type(of: self)).\(#function) songPersistentIDNumber is nil")
+            Logger.logDetails(msg:"songPersistentIDNumber is nil")
             return
         }
         
         let songPersistentID = songPersistentIDNumber.uint64Value
-        NSLog("\(type(of: self)).\(#function) songPersistentID = \(songPersistentID)")
-        guard let song = SongFetcher.fetchSongWithPersistentID(songPersistentID, databaseInterface: DatabaseInterface()) else {
+        Logger.logDetails(msg:"songPersistentID = \(songPersistentID)")
+        
+        let databaseInterface = DatabaseInterface(concurrencyType: .mainQueueConcurrencyType)
+        guard let song = SongFetcher.fetchSongWithPersistentID(songPersistentID, databaseInterface: databaseInterface) else {
+            Logger.logDetails(msg:"fetchSongWithPersistentID is nil")
             return
         }
         
         self.song = song
-        NSLog("\(type(of: self)).\(#function) self.song = \(self.song)")
+        Logger.logDetails(msg:"self.song = \(self.song)")
         
         let songListObject = aDecoder.decodeObject(forKey: "songList")
         //NSLog("songListObject = \(songListObject)")
@@ -82,13 +118,16 @@ class SongManager: NSObject, AVAudioPlayerDelegate {
         addNotificationObservers()
         
         let songElapsedTime = aDecoder.decodeDouble(forKey: "songElapsedTime")
+        Logger.logDetails(msg:"songElapsedTime = \(songElapsedTime)")
         
-        audioPlayer?.updateSongTime(songElapsedTime)
+        Logger.writeToLogFile("Calling updateSongTime(\(songElapsedTime))")
+        
+        updateSongTime(songElapsedTime)
     }
     
     func encodeWithCoder(_ aCoder: NSCoder) {
         guard let song = song else {
-            NSLog("\(type(of: self)).\(#function) song is nil")
+            Logger.logDetails(msg:"song is nil")
             return
         }
         
@@ -97,11 +136,17 @@ class SongManager: NSObject, AVAudioPlayerDelegate {
         aCoder.encode(previousSongs, forKey: "previousSongs")
         
         guard let audioPlayer = audioPlayer else {
-            NSLog("\(type(of: self)).\(#function) audioPlayer is nil")
+            Logger.logDetails(msg:"audioPlayer is nil")
             return
         }
         
-        aCoder.encode(audioPlayer.songElapsedTime(), forKey: "songElapsedTime")
+        let songElapsedTime = audioPlayer.songElapsedTime()
+        Logger.logDetails(msg:"songElapsedTime = \(songElapsedTime)")
+
+        aCoder.encode(songElapsedTime, forKey: "songElapsedTime")
+        
+        archivedElapsedTime = songElapsedTime
+        Logger.logDetails(msg:"archivedElapsedTime = \(archivedElapsedTime)")
     }
     
     deinit {
@@ -111,6 +156,7 @@ class SongManager: NSObject, AVAudioPlayerDelegate {
     func removeNotificationObservers() {
         notificationCenter.removeObserver(self, name: NSNotification.Name(rawValue: "Swift-Music-Player.playAudio"), object: nil)
         notificationCenter.removeObserver(self, name: NSNotification.Name(rawValue: "Swift-Music-Player.pauseAudio"), object: nil)
+        notificationCenter.removeObserver(self, name: NSNotification.Name(rawValue: "Swift-Music-Player.audioPaused"), object: nil)
         notificationCenter.removeObserver(self, name: NSNotification.Name(rawValue: "Swift-Music-Player.nextTrack"), object: nil)
         notificationCenter.removeObserver(self, name: NSNotification.Name(rawValue: "Swift-Music-Player.previousTrack"), object: nil)
     }
@@ -118,22 +164,33 @@ class SongManager: NSObject, AVAudioPlayerDelegate {
     func addNotificationObservers() {
         notificationCenter.addObserver(self, selector: #selector(playAudio), name:NSNotification.Name(rawValue: "Swift-Music-Player.playAudio"), object: nil)
         notificationCenter.addObserver(self, selector:#selector(pauseAudio), name:NSNotification.Name(rawValue: "Swift-Music-Player.pauseAudio"), object:nil)
+        notificationCenter.addObserver(self, selector:#selector(handleAudioPaused), name:NSNotification.Name(rawValue: "Swift-Music-Player.audioPaused"), object:nil)
         notificationCenter.addObserver(self, selector: #selector(skipToNextSong), name: NSNotification.Name(rawValue: "Swift-Music-Player.nextTrack"), object: nil)
         notificationCenter.addObserver(self, selector: #selector(goBack), name: NSNotification.Name(rawValue: "Swift-Music-Player.previousTrack"), object: nil)
     }
     
     func archiveData() {
-        NSKeyedArchiver.archiveRootObject(self, toFile:FileUtilities.songManagerArchiveFilePath())
+        let archiveStatus = NSKeyedArchiver.archiveRootObject(self, toFile:FileUtilities.songManagerArchiveFilePath())
+        Logger.logDetails(msg:"archiveStatus = \(archiveStatus)")
+        
+        let fileExists = FileManager.default.fileExists(atPath: FileUtilities.songManagerArchiveFilePath())
+        Logger.writeToLogFile("FileUtilities.songManagerArchiveFilePath() = \(FileUtilities.songManagerArchiveFilePath()), exists = \(fileExists)")
     }
     
     func playAudio() {
-        Logger.writeToLogFile("\(type(of: self)).\(#function) called")
+        Logger.logDetails(msg: "Entered")
+        
+        if audioPlayer == nil {
+            createAudioPlayer()
+            audioPlayer?.updateSongTime(archivedElapsedTime)
+        }
         
         guard let audioPlayer = audioPlayer else {
+            Logger.logDetails(msg: "audioPlayer is nil")
             return
         }
         
-        Logger.writeToLogFile("\(type(of: self)).\(#function) calling audioPlayer.playAudio()")
+        Logger.logDetails(msg:"calling audioPlayer.playAudio() with songElapsedTime = \(audioPlayer.songElapsedTime())")
         
         audioPlayer.playAudio()
         createNowPlayingTimer()
@@ -142,13 +199,14 @@ class SongManager: NSObject, AVAudioPlayerDelegate {
     }
     
     func pauseAudio() {
-        Logger.writeToLogFile("\(type(of: self)).\(#function) called")
+        Logger.logDetails(msg: "Entered")
         
         guard let audioPlayer = audioPlayer else {
+            Logger.logDetails(msg: "audioPlayer is nil")
             return
         }
         
-        Logger.writeToLogFile("\(type(of: self)).\(#function) calling audioPlayer.pauseAudio()")
+        Logger.logDetails(msg:"calling audioPlayer.pauseAudio() with songElapsedTime = \(audioPlayer.songElapsedTime())")
         
         audioPlayer.pauseAudio()
         nowPlayingTimer?.invalidate()
@@ -156,10 +214,39 @@ class SongManager: NSObject, AVAudioPlayerDelegate {
         archiveData()
         
         updateUIInfo()
+        
+        self.audioPlayer = nil
+    }
+    
+    func handleAudioPaused() {
+        Logger.logDetails(msg: "Entered")
+        
+        nowPlayingTimer?.invalidate()
+        
+        guard let audioPlayer = audioPlayer else {
+            Logger.logDetails(msg: "audioPlayer is nil")
+            return
+        }
+        
+        Logger.logDetails(msg:"calling archiveData() with songElapsedTime = \(audioPlayer.songElapsedTime())")
+        
+        archiveData()
+        
+        updateUIInfo()
+        
+        self.audioPlayer = nil
     }
     
     func playOrPauseAudio() {
+        Logger.logDetails(msg: "Entered")
+        
+        if audioPlayer == nil {
+            createAudioPlayer()
+            audioPlayer?.updateSongTime(archivedElapsedTime)
+        }
+        
         guard let audioPlayer = audioPlayer else {
+            Logger.logDetails(msg: "audioPlayer is nil")
             return
         }
         
@@ -168,32 +255,40 @@ class SongManager: NSObject, AVAudioPlayerDelegate {
         audioPlayer.playOrPauseAudio()
         
         audioWasPlaying ? nowPlayingTimer?.invalidate() : createNowPlayingTimer()
+        
+        archiveData()
+        
+        updateUIInfo()
+        
+        if audioWasPlaying {
+            self.audioPlayer = nil
+        }
     }
     
     func createAudioPlayer() {
-        Logger.writeToLogFile("\(type(of: self)).\(#function) called")
+        Logger.logDetails(msg: "Entered")
         
         guard let song = song else {
-            Logger.writeToLogFile("song is nil in \(type(of: self)).\(#function)")
+            Logger.logDetails(msg:"song is nil")
             return
         }
         
         guard let songURL = NSKeyedUnarchiver.unarchiveObject(with: song.assetURL as Data) as? URL else {
-            Logger.writeToLogFile("songURL is nil in \(type(of: self)).\(#function)")
+            Logger.logDetails(msg:"songURL is nil")
             return
         }
         
         audioPlayer = AudioPlayer(url: songURL)
         
         guard let audioPlayer = audioPlayer else {
-            Logger.writeToLogFile("Audio player creation failed in \(type(of: self)).\(#function)")
+            Logger.logDetails(msg:"Audio player creation failed")
             return
         }
         
-        Logger.writeToLogFile("\(type(of: self)).\(#function) created audioPlayer for \(song) with url \(songURL)")
+        Logger.logDetails(msg:"created audioPlayer for \(song) with url \(songURL)")
         
         audioPlayer.delegate = self
-        Logger.writeToLogFile("Audio player delegate assigned to \(type(of: self)) in \(type(of: self)).\(#function) for \(MediaObjectUtilities.titleAndArtistStringForSong(song))")
+        Logger.logDetails(msg:"Audio player delegate assigned to \(type(of: self)) for \(MediaObjectUtilities.titleAndArtistStringForSong(song))")
     }
 
     func updateUIInfo() {
@@ -210,6 +305,11 @@ class SongManager: NSObject, AVAudioPlayerDelegate {
             createAudioPlayer()
         }
         
+        guard audioPlayer != nil else {
+            Logger.logDetails(msg: "audioPlayer is nil")
+            return
+        }
+        
         playOrPauseAudio()
         updateUIInfo()
     }
@@ -217,7 +317,7 @@ class SongManager: NSObject, AVAudioPlayerDelegate {
     func loadNextSong() {
         let shuffleFlag = UserPreferences().shuffleFlagValue()
         
-        Logger.writeToLogFile("\(type(of: self)).\(#function) called with UserPreferences().shuffleFlagValue() = \(shuffleFlag)")
+        Logger.logDetails(msg:"Called with UserPreferences().shuffleFlagValue() = \(shuffleFlag)")
         
         if shuffleFlag {
             loadNextShuffleSong()
@@ -225,7 +325,8 @@ class SongManager: NSObject, AVAudioPlayerDelegate {
             if !currentSongIsLastSong() {
                 if let songIndex = returnSongListIndexForSong(song) {
                     let nextSongPersistentKey = songList[songIndex + 1].persistentKey
-                    song = SongFetcher.fetchSongBySongPersistentKey(nextSongPersistentKey, databaseInterface: DatabaseInterface())
+                    let databaseInterface = DatabaseInterface(concurrencyType: .mainQueueConcurrencyType)
+                    song = SongFetcher.fetchSongBySongPersistentKey(nextSongPersistentKey, databaseInterface: databaseInterface)
                 }
             }
         }
@@ -236,13 +337,16 @@ class SongManager: NSObject, AVAudioPlayerDelegate {
 
     func goBack() {
         guard let audioPlayer = audioPlayer else {
+            Logger.logDetails(msg: "audioPlayer is nil")
             return
         }
         
         let elapsedTime = audioPlayer.songElapsedTime()
-        Logger.writeToLogFile("\(type(of: self)).\(#function) called with elapsedTime = \(elapsedTime)")
+        Logger.logDetails(msg:"Called with elapsedTime = \(elapsedTime)")
         
         if elapsedTime > 1.0 {
+            Logger.writeToLogFile("Calling audioPlayer.updateSongTime(0.0)")
+            
             updateSongTime(0.0)
         } else {
             let audioPlaying = audioPlayer.isAudioPlaying()
@@ -252,15 +356,18 @@ class SongManager: NSObject, AVAudioPlayerDelegate {
     }
     
     func loadPreviousSong() {
-        Logger.writeToLogFile("\(type(of: self)).\(#function) called")
+        Logger.logDetails(msg: "Entered")
         
         guard let last = previousSongs.last else {
+            Logger.logDetails(msg: "last is nil")
             return
         }
         
-        song = SongFetcher.fetchSongBySongPersistentKey(last.int64Value, databaseInterface: DatabaseInterface())
+        let databaseInterface = DatabaseInterface(concurrencyType: .mainQueueConcurrencyType)
+        song = SongFetcher.fetchSongBySongPersistentKey(last.int64Value, databaseInterface: databaseInterface)
 
         guard let song = song else {
+            Logger.logDetails(msg: "song is nil")
             return
         }
         
@@ -270,14 +377,14 @@ class SongManager: NSObject, AVAudioPlayerDelegate {
         
         archiveData()
         
-        Logger.writeToLogFile("\(type(of: self)).\(#function) set song to \(MediaObjectUtilities.titleAndArtistStringForSong(song))")
+        Logger.logDetails(msg:"set song to \(MediaObjectUtilities.titleAndArtistStringForSong(song))")
         
         createAudioPlayer()
         updateUIInfo()
     }
     
     func playPreviousSong() {
-        Logger.writeToLogFile("\(type(of: self)).\(#function) called")
+        Logger.logDetails(msg: "Entered")
         
         loadPreviousSong()
         playSong(false)
@@ -285,11 +392,12 @@ class SongManager: NSObject, AVAudioPlayerDelegate {
     }
     
     func playNextSong() {
-        Logger.writeToLogFile("\(type(of: self)).\(#function) called")
+        Logger.logDetails(msg: "Entered")
 
         loadNextSong()
         
         guard song != nil else {
+            Logger.logDetails(msg: "song is nil")
             return
         }
         
@@ -297,11 +405,16 @@ class SongManager: NSObject, AVAudioPlayerDelegate {
     }
 
     func currentSongIsLastSong() -> Bool {
+        Logger.logDetails(msg: "Entered")
+        
         return song?.summary.persistentKey == songList[songList.count - 1].persistentKey
     }
     
     func songElapsedTime() -> TimeInterval {
+        //Logger.logDetails(msg: "Entered")
+        
         guard let audioPlayer = audioPlayer else {
+            Logger.logDetails(msg: "audioPlayer is nil")
             return 0
         }
         
@@ -309,7 +422,10 @@ class SongManager: NSObject, AVAudioPlayerDelegate {
     }
     
     func isAudioPlaying() -> Bool {
+        Logger.logDetails(msg: "Entered")
+        
         guard let audioPlayer = audioPlayer else {
+            Logger.logDetails(msg: "audioPlayer is nil")
             return false
         }
         
@@ -317,9 +433,14 @@ class SongManager: NSObject, AVAudioPlayerDelegate {
     }
     
     func updateSongTime(_ songTime: TimeInterval) {
+        Logger.logDetails(msg: "Entered")
+        
         guard let audioPlayer = audioPlayer else {
+            Logger.logDetails(msg: "audioPlayer is nil")
             return
         }
+ 
+        Logger.writeToLogFile("Calling audioPlayer.updateSongTime(\(songTime))")
         
         audioPlayer.updateSongTime(songTime)
         
@@ -328,6 +449,7 @@ class SongManager: NSObject, AVAudioPlayerDelegate {
 
     func adjustVolume(_ volume: Float) {
         guard let audioPlayer = audioPlayer else {
+            Logger.logDetails(msg: "audioPlayer is nil")
             return
         }
         
@@ -335,24 +457,27 @@ class SongManager: NSObject, AVAudioPlayerDelegate {
     }
     
     func returnSongListIndexForSong(_ song: Song?) -> Int? {
-        //Logger.writeToLogFile("\(self.dynamicType).\(#function) called")
+        Logger.logDetails(msg: "Entered")
         
         guard song != nil else {
-            Logger.writeToLogFile("\(type(of: self)).\(#function) found a nil song")
+            Logger.logDetails(msg:"song is nil")
             return nil
         }
         
-        //Logger.writeToLogFile("\(self.dynamicType).\(#function) songList.count = \(songList.count)")
+        //Logger.logDetails(msg:"songList.count = \(songList.count)")
         
         let returnValue = songList.index(where: { $0.persistentKey == song!.summary.persistentKey })
 
-        //Logger.writeToLogFile("\(self.dynamicType).\(#function) returning \(returnValue)")
+        //Logger.logDetails(msg:"returning \(returnValue)")
 
         return returnValue
     }
     
     func returnTrackOfTracksForSong(_ song: Song) -> (trackNumber: Int, totalTracks: Int) {
+        Logger.logDetails(msg: "Entered")
+        
         guard let songIndex = returnSongListIndexForSong(song) else {
+            Logger.logDetails(msg: "songIndex is nil")
             return (-1, songList.count)
         }
         
@@ -363,6 +488,8 @@ class SongManager: NSObject, AVAudioPlayerDelegate {
     // What songList needs: SongPlayRecords
     
     func fillSongListFromAlbumTracks(_ albumTracks:Array<NSOrderedSet>, containsMultipleAlbums: Bool) {
+        Logger.logDetails(msg: "Entered")
+        
         previousSongs = []
         songList = []
          
@@ -379,6 +506,8 @@ class SongManager: NSObject, AVAudioPlayerDelegate {
      }
     
     func fillSongListFromPlaylistSongs(_ playlistPersistentID:UInt64) {
+        Logger.logDetails(msg: "Entered")
+        
         previousSongs = []
         songList = SongFetcher.fetchPlaylistSongListPersistentKeysAndLastPlayedTimes(playlistPersistentID)
         songListType = "Playlist Songs List"
@@ -387,6 +516,8 @@ class SongManager: NSObject, AVAudioPlayerDelegate {
     }
     
     func fillSongListWithAllSongs() {
+        Logger.logDetails(msg: "Entered")
+        
         previousSongs = []
         songList = SongFetcher.fetchSongListPersistentKeysAndLastPlayedTimes(nil)
         songListType = "All Songs List"
@@ -395,7 +526,10 @@ class SongManager: NSObject, AVAudioPlayerDelegate {
     }
 
     func skipToNextSong() {
+        Logger.logDetails(msg: "Entered")
+        
         guard let audioPlayer = audioPlayer else {
+            Logger.logDetails(msg: "audioPlayer is nil")
             return
         }
         
@@ -413,22 +547,28 @@ class SongManager: NSObject, AVAudioPlayerDelegate {
     }
 
     func createSongShuffler() {
+        Logger.logDetails(msg: "Entered")
+        
         if UserPreferences().shuffleFlagValue() {
             songShuffler = SongShuffler(songList: songList)
         }
     }
     
     func loadNextShuffleSong() {
+        Logger.logDetails(msg: "Entered")
+        
         if songShuffler == nil {
-            Logger.writeToLogFile("\(type(of: self)).\(#function) called with nil songShuffler")
+            Logger.logDetails(msg:"Called with nil songShuffler")
         }
         
         song = songShuffler?.fetchShuffleSong()
         
-        Logger.writeToLogFile("\(type(of: self)).\(#function) returning \(song)")
+        Logger.logDetails(msg:"returning \(song)")
     }
     
     func shuffleAll() {
+        Logger.logDetails(msg: "Entered")
+        
         previousSongs = []
         
         createSongShuffler()
@@ -437,9 +577,10 @@ class SongManager: NSObject, AVAudioPlayerDelegate {
     }
     
     func updateNowPlayingInfoCenter() {
-        //Logger.writeToLogFile("\(self.dynamicType).\(#function) called")
+        //Logger.logDetails(msg: "Entered")
         
         guard let song = self.song else {
+            Logger.logDetails(msg: "song is nil")
             return
         }
         
@@ -453,20 +594,21 @@ class SongManager: NSObject, AVAudioPlayerDelegate {
              MPMediaItemPropertyPlaybackDuration: song.duration,
              MPNowPlayingInfoPropertyPlaybackRate: NSNumber(value: 1.0 as Float)] as [String : Any]
         
-        if let audioPlayer = audioPlayer {
-            nowPlayingDict[MPNowPlayingInfoPropertyElapsedPlaybackTime] = NSNumber(value: audioPlayer.songElapsedTime() as Double)
-            //Logger.writeToLogFile("\(self.dynamicType).\(#function) elapsed time = \(nowPlayingDict[MPNowPlayingInfoPropertyElapsedPlaybackTime])")
-        } else {
-            Logger.writeToLogFile("\(type(of: self)).\(#function) audioPlayer is nil")
+        guard let audioPlayer = audioPlayer else {
+            Logger.logDetails(msg:"audioPlayer is nil")
+            return
         }
         
+        nowPlayingDict[MPNowPlayingInfoPropertyElapsedPlaybackTime] = NSNumber(value: audioPlayer.songElapsedTime() as Double)
+        //Logger.logDetails(msg:"elapsed time = \(nowPlayingDict[MPNowPlayingInfoPropertyElapsedPlaybackTime])")
+
         if let songArtwork = song.albumArtwork() {
             nowPlayingDict[MPMediaItemPropertyArtwork] = songArtwork
         } else {
-            Logger.writeToLogFile("\(type(of: self)).\(#function) songArtwork is nil")
+            Logger.logDetails(msg:"songArtwork is nil")
         }
         
-        //NSLog("\(self.dynamicType).\(#function) nowPlayingDict = \(nowPlayingDict)")
+        //Logger.logDetails(msg:"nowPlayingDict = \(nowPlayingDict)")
         
         MPNowPlayingInfoCenter.default().nowPlayingInfo = nowPlayingDict
         
@@ -483,33 +625,34 @@ class SongManager: NSObject, AVAudioPlayerDelegate {
     // MARK: Audio Player Delegate
     func audioPlayerDidFinishPlaying(_ player: AVAudioPlayer, successfully flag: Bool) {
         DispatchQueue.main.async {
-            Logger.writeToLogFile("\(type(of: self)).\(#function) called")
+            Logger.logDetails(msg: "Entered")
             
             self.nowPlayingTimer?.invalidate()
             
             guard let song = self.song else {
-                Logger.writeToLogFile("\(type(of: self)).\(#function) found a nil song")
+                Logger.logDetails(msg:"song is nil")
                 return
             }
 
-            song.updateLastPlayedTime(DateTimeUtilities.returnNowTimeInterval(), databaseInterface: DatabaseInterface())
+            let databaseInterface = DatabaseInterface(concurrencyType: .mainQueueConcurrencyType)
+            song.updateLastPlayedTime(DateTimeUtilities.returnNowTimeInterval(), databaseInterface: databaseInterface)
                 
             self.previousSongs.append(NSNumber(value: song.summary.persistentKey as Int64))
             
             if let songShuffler = self.songShuffler {
                 songShuffler.moveOldSongToPlayedSongsList(song)
             } else {
-                Logger.writeToLogFile("\(type(of: self)).\(#function) found a nil songShuffler")
+                Logger.logDetails(msg:"songShuffler is nil")
             }
             
-            Logger.writeToLogFile("\(type(of: self)).\(#function) found a non-nil song")
+            Logger.logDetails(msg:"found a non-nil song")
 
             self.archiveData()
             
             if let delegate = self.delegate {
                 delegate.audioPlayerDidFinishPlaying?(player, successfully: flag)
             } else {
-                Logger.writeToLogFile("\(type(of: self)).\(#function) found a nil songShuffler")
+                Logger.logDetails(msg:"delegate is nil")
             }
             
             self.playNextSong()
@@ -517,7 +660,7 @@ class SongManager: NSObject, AVAudioPlayerDelegate {
     }
     
     func audioPlayerDecodeErrorDidOccur(_ player: AVAudioPlayer, error: Error?) {
-        Logger.writeToLogFile("\(type(of: self)).\(#function) called")
+        Logger.logDetails(msg: "Entered")
         
         delegate?.audioPlayerDecodeErrorDidOccur?(player, error: error)
     }

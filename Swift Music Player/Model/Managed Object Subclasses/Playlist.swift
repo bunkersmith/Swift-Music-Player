@@ -1,6 +1,6 @@
 //
 //  Playlist.swift
-//  MusicByCarlSwift
+//  Swift Music Player
 //
 //  Created by CarlSmith on 8/1/15.
 //  Copyright (c) 2015 CarlSmith. All rights reserved.
@@ -14,47 +14,47 @@ class Playlist: NSManagedObject {
     @NSManaged var songSummaries: NSOrderedSet
     @NSManaged var summary: PlaylistSummary
     
-    func addSongSummariesObject(value:SongSummary)
+    func addSongSummariesObject(_ value:SongSummary)
     {
-        self.willChangeValueForKey("songSummaries")
+        self.willChangeValue(forKey: "songSummaries")
         let tempSet:NSMutableOrderedSet = NSMutableOrderedSet(orderedSet:self.songSummaries)
-        tempSet.addObject(value)
+        tempSet.add(value)
         self.songSummaries = tempSet
-        self.didChangeValueForKey("songSummaries")
+        self.didChangeValue(forKey: "songSummaries")
     }
     
-    func addSongSummariesObjects(values:NSArray)
+    func addSongSummariesObjects(_ values:NSArray)
     {
-        self.willChangeValueForKey("songSummaries")
+        self.willChangeValue(forKey: "songSummaries")
         let tempSet:NSMutableOrderedSet = NSMutableOrderedSet(orderedSet:self.songSummaries)
-        tempSet.addObjectsFromArray(values as [AnyObject])
+        tempSet.addObjects(from: values as [AnyObject])
         self.songSummaries = tempSet
-        self.didChangeValueForKey("songSummaries")
+        self.didChangeValue(forKey: "songSummaries")
     }
     
-    func removeSongSummariesObject(value:SongSummary)
+    func removeSongSummariesObject(_ value:SongSummary)
     {
-        self.willChangeValueForKey("songSummaries")
+        self.willChangeValue(forKey: "songSummaries")
         let tempSet:NSMutableOrderedSet = NSMutableOrderedSet(orderedSet:self.songSummaries)
-        tempSet.removeObject(value)
+        tempSet.remove(value)
         self.songSummaries = tempSet
-        self.didChangeValueForKey("songSummaries")
+        self.didChangeValue(forKey: "songSummaries")
     }
     
-    func removeSongSummariesObjects(values:NSArray)
+    func removeSongSummariesObjects(_ values:NSArray)
     {
-        self.willChangeValueForKey("songSummaries")
+        self.willChangeValue(forKey: "songSummaries")
         let tempSet:NSMutableOrderedSet = NSMutableOrderedSet(orderedSet:self.songSummaries)
-        tempSet.removeObjectsInArray(values as [AnyObject])
+        tempSet.removeObjects(in: values as [AnyObject])
         self.songSummaries = tempSet
-        self.didChangeValueForKey("songSummaries")
+        self.didChangeValue(forKey: "songSummaries")
     }
     
     override var description: String {
         var returnValue = "***** PLAYLIST *****"
         returnValue = returnValue + "\nsummary: \(summary)"
         returnValue = returnValue + "\nsongSummaries:"
-        for (_, object) in songSummaries.enumerate() {
+        for (_, object) in songSummaries.enumerated() {
             let songSummary = object as! SongSummary
             returnValue = returnValue + "\n\(songSummary.title) by \(songSummary.artistName)"
         }

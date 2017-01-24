@@ -9,11 +9,11 @@
 import UIKit
 
 extension Float {
-    func string(minFractionDigits:Int, maxFractionDigits:Int) -> String {
-        let formatter = NSNumberFormatter()
+    func string(_ minFractionDigits:Int, maxFractionDigits:Int) -> String {
+        let formatter = NumberFormatter()
         formatter.minimumFractionDigits = minFractionDigits
         formatter.maximumFractionDigits = maxFractionDigits
-        return formatter.stringFromNumber(self) ?? "\(self)"
+        return formatter.string(from: NSNumber(value: self)) ?? "\(self)"
     }
 }
 

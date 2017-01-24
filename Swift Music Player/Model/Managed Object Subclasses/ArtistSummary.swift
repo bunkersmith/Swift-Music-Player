@@ -1,6 +1,6 @@
 //
 //  ArtistSummary.swift
-//  MusicByCarlSwift
+//  Swift Music Player
 //
 //  Created by CarlSmith on 8/1/15.
 //  Copyright (c) 2015 CarlSmith. All rights reserved.
@@ -24,7 +24,7 @@ class ArtistSummary: NSManagedObject {
         returnValue = returnValue + "\nname: " + name
         returnValue = returnValue + "\nstrippedName: " + strippedName
         returnValue = returnValue + "\nsearchKey: \(searchKey)"
-        returnValue = returnValue + "\npersistentID: \(persistentID)" // was %llu
+        returnValue = returnValue + "\npersistentID: \(persistentID)"
         return returnValue
     }
 }

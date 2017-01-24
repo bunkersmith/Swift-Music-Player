@@ -12,82 +12,82 @@ import MediaPlayer
 import MessageUI
 
 class ObjectToStringUtilities {
-    class func imageOrientationToString(orientation:UIImageOrientation) -> String {
+    class func imageOrientationToString(_ orientation:UIImageOrientation) -> String {
         switch (orientation) {
-        case .Down:
+        case .down:
             return "UIImageOrientationDown";
             
-        case .DownMirrored:
+        case .downMirrored:
             return "UIImageOrientationDownMirrored";
             
-        case .Left:
+        case .left:
             return "UIImageOrientationLeft";
             
-        case .LeftMirrored:
+        case .leftMirrored:
             return "UIImageOrientationLeftMirrored";
             
-        case .Right:
+        case .right:
             return "UIImageOrientationRight";
             
-        case .RightMirrored:
+        case .rightMirrored:
             return "UIImageOrientationRigheMirrored";
             
-        case .Up:
+        case .up:
             return "UIImageOrientationUp";
             
-        case .UpMirrored:
+        case .upMirrored:
             return "UIImageOrientationUpMirrored";
         }
     }
     
-    class func stringFromCGSize(size: CGSize) -> String {
+    class func stringFromCGSize(_ size: CGSize) -> String {
         return String(format: "%.2f, %.2f", size.width, size.height)
     }
     
-    class func stringFromCGPoint(point: CGPoint) -> String {
+    class func stringFromCGPoint(_ point: CGPoint) -> String {
         return String(format: "%.2f, %.2f", point.x, point.y)
     }
     
-    class func stringFromCGRect(rect: CGRect) -> String {
+    class func stringFromCGRect(_ rect: CGRect) -> String {
         let returnValue = String(format: "origin = %.2f, %.2f", rect.origin.x, rect.origin.y)
         return returnValue + String(format: "\nsize = %.2f, %.2f", rect.size.width, rect.size.height)
     }
     
-    class func titleAndArtistStringForMediaItem(mediaItem: MPMediaItem) -> String {
+    class func titleAndArtistStringForMediaItem(_ mediaItem: MPMediaItem) -> String {
         return "title: \(mediaItem.title) and artist: \(mediaItem.artist)"
     }
     
-    class func titleAndArtistStringForSong(song: Song) -> String {
+    class func titleAndArtistStringForSong(_ song: Song) -> String {
         return "title: \(song.summary.title) and artist: \(song.summary.artistName)"
     }
     
-    class func titleAndArtistStringForAlbum(album: Album) -> String {
+    class func titleAndArtistStringForAlbum(_ album: Album) -> String {
         return "title: \(album.summary.title) and artist: \(album.summary.artistName)"
     }
     
-    class func titleArtistLastPlayedTimeAndPersistentIDStringForSong(song: Song) -> String {
+    class func titleArtistLastPlayedTimeAndPersistentIDStringForSong(_ song: Song) -> String {
         return "title: \(song.summary.title) artist: \(song.summary.artistName) lastPlayedTime: \(DateTimeUtilities.timeIntervalToString(song.summary.lastPlayedTime)) persistentID: \(song.summary.persistentID)"
     }
     
-    class func titleArtistLastPlayedTimeAndPersistentKeyStringForSong(song: Song) -> String {
+    class func titleArtistLastPlayedTimeAndPersistentKeyStringForSong(_ song: Song) -> String {
         return "title: \(song.summary.title) artist: \(song.summary.artistName) lastPlayedTime: \(DateTimeUtilities.timeIntervalToString(song.summary.lastPlayedTime)) persistentKey: \(song.summary.persistentKey)"
     }
     
-    class func eventTypeToString(eventType: UIEventType) -> String
+    class func eventTypeToString(_ eventType: UIEventType) -> String
     {
         var returnValue = ""
         
         switch (eventType)
         {
-        case .Touches:
+        case .touches:
             returnValue = "UIEventTypeTouches"
             break
             
-        case .Motion:
+        case .motion:
             returnValue = "UIEventTypeMotion"
             break
             
-        case .RemoteControl:
+        case .remoteControl:
             returnValue = "UIEventTypeRemoteControl"
             break
             
@@ -99,57 +99,57 @@ class ObjectToStringUtilities {
         return returnValue
     }
     
-    class func eventSubtypeToString(eventSubtype: UIEventSubtype) -> String
+    class func eventSubtypeToString(_ eventSubtype: UIEventSubtype) -> String
     {
         var returnValue = ""
         
         switch (eventSubtype)
         {
-        case .None:
+        case .none:
             returnValue = "UIEventSubtypeNone"
             break
             
-        case .MotionShake:
+        case .motionShake:
             returnValue = "UIEventSubtypeMotionShake"
             break
             
-        case .RemoteControlPlay:
+        case .remoteControlPlay:
             returnValue = "UIEventSubtypeRemoteControlPlay"
             break
             
-        case .RemoteControlPause:
+        case .remoteControlPause:
             returnValue = "UIEventSubtypeRemoteControlPause"
             break
             
-        case .RemoteControlStop:
+        case .remoteControlStop:
             returnValue = "UIEventSubtypeRemoteControlStop"
             break
             
-        case .RemoteControlTogglePlayPause:
+        case .remoteControlTogglePlayPause:
             returnValue = "UIEventSubtypeRemoteControlTogglePlayPause"
             break
             
-        case .RemoteControlNextTrack:
+        case .remoteControlNextTrack:
             returnValue = "UIEventSubtypeRemoteControlNextTrack"
             break
             
-        case .RemoteControlPreviousTrack:
+        case .remoteControlPreviousTrack:
             returnValue = "UIEventSubtypeRemoteControlPreviousTrack"
             break
             
-        case .RemoteControlBeginSeekingBackward:
+        case .remoteControlBeginSeekingBackward:
             returnValue = "UIEventSubtypeRemoteControlBeginSeekingBackward"
             break
             
-        case .RemoteControlEndSeekingBackward:
+        case .remoteControlEndSeekingBackward:
             returnValue = "UIEventSubtypeRemoteControlEndSeekingBackward"
             break
             
-        case .RemoteControlBeginSeekingForward:
+        case .remoteControlBeginSeekingForward:
             returnValue = "UIEventSubtypeRemoteControlBeginSeekingForward"
             break
             
-        case .RemoteControlEndSeekingForward:
+        case .remoteControlEndSeekingForward:
             returnValue = "UIEventSubtypeRemoteControlEndSeekingForward"
             break
         }
@@ -157,20 +157,20 @@ class ObjectToStringUtilities {
         return returnValue
     }
     
-    class func fetchedResultsChangeTypeToString(fetchedResultsChangeType: NSFetchedResultsChangeType) -> String {
+    class func fetchedResultsChangeTypeToString(_ fetchedResultsChangeType: NSFetchedResultsChangeType) -> String {
         var returnValue = ""
         
         switch (fetchedResultsChangeType) {
-        case .Insert:
+        case .insert:
             returnValue = "NSFetchedResultsChangeInsert"
             break
-        case .Delete:
+        case .delete:
             returnValue = "NSFetchedResultsChangeDelete"
             break
-        case .Move:
+        case .move:
             returnValue = "NSFetchedResultsChangeMove"
             break
-        case .Update:
+        case .update:
             returnValue = "NSFetchedResultsChangeUpdate"
             break
         }
@@ -178,19 +178,19 @@ class ObjectToStringUtilities {
         return returnValue
     }
     
-    class func mfMailComposeResultToString(result: MFMailComposeResult) -> String {
+    class func mfMailComposeResultToString(_ result: MFMailComposeResult) -> String {
         var resultString:String
         switch (result.rawValue) {
-        case MFMailComposeResultCancelled.rawValue:
+        case MFMailComposeResult.cancelled.rawValue:
             resultString = "Result: Mail sending cancelled"
             break
-        case MFMailComposeResultSaved.rawValue:
+        case MFMailComposeResult.saved.rawValue:
             resultString = "Result: Mail saved"
             break
-        case MFMailComposeResultSent.rawValue:
+        case MFMailComposeResult.sent.rawValue:
             resultString = "Result: Mail sent"
             break
-        case MFMailComposeResultFailed.rawValue:
+        case MFMailComposeResult.failed.rawValue:
             resultString = "Result: Mail sending failed"
             break
         default:
@@ -200,7 +200,7 @@ class ObjectToStringUtilities {
         return resultString
     }
     
-    class func eventTypeAndSubtypeToString(event: UIEvent) -> String {
+    class func eventTypeAndSubtypeToString(_ event: UIEvent) -> String {
         return "type = \(eventTypeToString(event.type)) and subtype = \(eventSubtypeToString(event.subtype))"
     }
 }

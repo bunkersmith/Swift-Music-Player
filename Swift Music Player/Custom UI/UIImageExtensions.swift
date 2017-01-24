@@ -22,11 +22,11 @@ extension UIImage {
     }
 */
     
-    func scaleToSize(size: CGSize) -> UIImage {
+    func scaleToSize(_ size: CGSize) -> UIImage {
         UIGraphicsBeginImageContextWithOptions(size, false, 0.0)
-        [self .drawInRect(CGRectMake(0.0, 0.0, size.width, size.height))]
+        let _ = [self .draw(in: CGRect(x: 0.0, y: 0.0, width: size.width, height: size.height))]
         let scaledImage = UIGraphicsGetImageFromCurrentImageContext()
         UIGraphicsEndImageContext()
-        return scaledImage
+        return scaledImage!
     }
 }

@@ -9,45 +9,51 @@
 import UIKit
 
 class DateTimeUtilities {
-    class func dateToString(date: NSDate) -> String {
-        let dateFormatter = NSDateFormatter()
+    class func dateToString(_ date: Date) -> String {
+        let dateFormatter = DateFormatter()
         dateFormatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
-        return dateFormatter.stringFromDate(date)
+        return dateFormatter.string(from: date)
     }
     
-    class func timeIntervalToString(timeInterval: NSTimeInterval) -> String {
-        return dateToString(NSDate(timeIntervalSinceReferenceDate: timeInterval))
+    class func currentTimeToString() -> String {
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "yyyy-MM-dd-HHmm"
+        return dateFormatter.string(from: Date())
     }
     
-    class func returnStringFromNSDate(date: NSDate?) -> String
+    class func timeIntervalToString(_ timeInterval: TimeInterval) -> String {
+        return dateToString(Date(timeIntervalSinceReferenceDate: timeInterval))
+    }
+    
+    class func returnStringFromNSDate(_ date: Date?) -> String
     {
         var userVisibleDateTimeString = ""
         
         if date != nil {
             // Convert the date object to a user-visible date string.
-            let userVisibleDateFormatter = NSDateFormatter()
-            userVisibleDateFormatter.dateStyle = .ShortStyle
-            userVisibleDateFormatter.timeStyle = .ShortStyle
+            let userVisibleDateFormatter = DateFormatter()
+            userVisibleDateFormatter.dateStyle = .short
+            userVisibleDateFormatter.timeStyle = .short
             
-            userVisibleDateTimeString = userVisibleDateFormatter.stringFromDate(date!)
+            userVisibleDateTimeString = userVisibleDateFormatter.string(from: date!)
         }
         
         return userVisibleDateTimeString
     }
     
-    class func durationToMinutesString(duration: Double) -> String {
+    class func durationToMinutesString(_ duration: Double) -> String {
         let minutes = floor(duration / 60.0)
         return String(format: "%.0f", minutes)
     }
     
-    class func durationToMinutesAndSecondsString(duration: Double) -> String {
-        let seconds = floor(duration % 60.0)
+    class func durationToMinutesAndSecondsString(_ duration: Double) -> String {
+        let seconds = floor(duration.truncatingRemainder(dividingBy: 60.0))
         let minutes = floor(duration / 60.0)
         return String(format: "%.0f:%02.0f", minutes, seconds)
     }
     
-    class func returnNowTimeInterval() -> NSTimeInterval {
-        let nowDate = NSDate()
+    class func returnNowTimeInterval() -> TimeInterval {
+        let nowDate = Date()
         return nowDate.timeIntervalSinceReferenceDate
     }
 }

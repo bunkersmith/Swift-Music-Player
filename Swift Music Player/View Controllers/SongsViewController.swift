@@ -26,7 +26,7 @@ class SongsViewController: MediaListViewController, MediaListVCDelegate {
     
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
-        let songCount = DatabaseInterface(concurrencyType: .mainQueueConcurrencyType).countOfEntitiesOfType("SongSummary", predicate: nil)
+        let songCount = SongsInterface.totalSongCount()
         songCountLabel.text = "\(songCount) Songs"
         
         if SongManager.instance.song != nil {

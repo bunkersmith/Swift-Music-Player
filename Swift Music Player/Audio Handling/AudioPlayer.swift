@@ -1,4 +1,4 @@
-//
+    //
 //  AudioPlayer.swift
 //  Audio Player Tutorial
 //
@@ -8,93 +8,154 @@
 
 import AVFoundation
 
-class AudioPlayer: NSObject, AVAudioPlayerDelegate {
+class AudioPlayer: NSObject {
     
-    private var audioSessionManager = AudioSessionManager()
-    private var audioPlayer: AVAudioPlayer?
+    weak var delegate: AVAudioPlayerDelegate? {
+        didSet {
+            audioPlayer?.delegate = delegate
+        }
+    }
     
-    init?(url: NSURL) {
+    fileprivate var audioSessionManager = AudioSessionManager.instance
+    fileprivate var audioPlayer: AVAudioPlayer?
+    
+    init?(url: URL) {
         super.init()
+        
+        Logger.logDetails(msg: "Entered")
+        
         do {
             audioSessionManager.activateAudioSession()
-            audioPlayer = try AVAudioPlayer(contentsOfURL: url)
-            addNotificationObservers()
-            audioPlayer?.delegate = self
+            audioPlayer = try AVAudioPlayer(contentsOf: url)
+            //addNotificationObservers()
             audioPlayer?.prepareToPlay()
+            audioPlayer?.volume = UserPreferences().volumeLevelValue()
         } catch let err as NSError {
             print("audioPlayer error \(err.localizedDescription)")
             return nil
         }
     }
 
-    func addNotificationObservers() {
-        let notificationCenter = NSNotificationCenter.defaultCenter()
-        notificationCenter.addObserver(self, selector: #selector(playAudio), name:"Swift-Music-Player.playAudio", object: nil)
-        notificationCenter.addObserver(self, selector:#selector(pauseAudio), name:"Swift-Music-Player.pauseAudio", object:nil)
-    }
-    
     deinit {
-        NSNotificationCenter.defaultCenter().removeObserver(self, name: "Swift-Music-Player.playAudio", object: nil)
-        NSNotificationCenter.defaultCenter().removeObserver(self, name: "Swift-Music-Player.pauseAudio", object: nil)
+        Logger.logDetails(msg: "Entered")
+        
+        audioPlayer?.stop()
+
+        //Logger.logDetails(msg: "Calling deactivateAudioSession")
+        
+        //audioSessionManager.deactivateAudioSession()
     }
     
     func playAudio() {
-        if let player = audioPlayer {
-            player.play()
+        Logger.logDetails(msg: "Entered")
+
+        guard let player = audioPlayer else {
+            Logger.logDetails(msg: "audioPlayer is nil")
+            
+            return
         }
+        
+        Logger.logDetails(msg: "player.currentTime = \(player.currentTime)")
+        
+        player.play()
     }
     
     func stopAudio() {
-        if let player = audioPlayer {
-            player.stop()
+        Logger.logDetails(msg: "Entered")
+        
+        guard let player = audioPlayer else {
+            Logger.logDetails(msg: "audioPlayer is nil")
+            
+            return
         }
+
+        player.stop()
     }
     
     func pauseAudio() {
-        if let player = audioPlayer {
-            player.pause()
+        Logger.logDetails(msg: "Entered")
+        
+        guard let player = audioPlayer else {
+            Logger.logDetails(msg: "audioPlayer is nil")
+            
+            return
         }
+
+        player.pause()
     }
     
     func playOrPauseAudio() {
-        if let player = audioPlayer {
-            if player.playing {
-                pauseAudio()
-            } else {
-                playAudio()
-            }
+        Logger.logDetails(msg: "Entered")
+        
+        guard let player = audioPlayer else {
+            Logger.logDetails(msg: "audioPlayer is nil")
+            
+            return
         }
+
+        Logger.logDetails(msg: "player.currentTime = \(player.currentTime)")
+        
+        player.isPlaying ? pauseAudio() : playAudio()
     }
     
-    func adjustVolume(volume: Float) {
-        if let player = audioPlayer {
-            player.volume = volume
+    func adjustVolume(_ volume: Float) {
+        Logger.logDetails(msg: "Entered")
+        
+        guard let player = audioPlayer else {
+            Logger.logDetails(msg: "audioPlayer is nil")
+            
+            return
         }
+
+        player.volume = volume
     }
     
     func isAudioPlaying() -> Bool {
-        if let player = audioPlayer {
-            return player.playing
+        Logger.logDetails(msg: "Entered")
+        
+        guard let player = audioPlayer else {
+            Logger.logDetails(msg: "audioPlayer is nil")
+            
+            return false
         }
-        return false
+
+        return player.isPlaying
     }
     
-    // MARK: Audio Player Delegate
-    func audioPlayerDidFinishPlaying(player: AVAudioPlayer, successfully
-        flag: Bool) {
-        NSLog("\(#function) called")
+    func updateSongTime(_ time: TimeInterval) {
+        Logger.logDetails(msg: "Entered")
+        
+        guard let player = audioPlayer else {
+            Logger.logDetails(msg: "audioPlayer is nil")
+            
+            return
+        }
+
+        player.currentTime = time
+        
+        Logger.logDetails(msg: "Set player.currentTime to \(player.currentTime)")
     }
     
-    func audioPlayerDecodeErrorDidOccur(player: AVAudioPlayer,
-                                        error: NSError?) {
-        NSLog("\(#function) called")
+    func songElapsedTime() -> TimeInterval {
+        //Logger.logDetails(msg: "Entered")
+        
+        guard let player = audioPlayer else {
+            Logger.logDetails(msg: "audioPlayer is nil")
+            
+            return 0
+        }
+
+        return player.currentTime
     }
     
-    func audioPlayerBeginInterruption(player: AVAudioPlayer) {
-        NSLog("\(#function) called")
+    func endSong() {
+        Logger.logDetails(msg: "Entered")
+        
+        if isAudioPlaying() {
+            stopAudio()
+        }
+        
+        //audioSessionManager.deactivateAudioSession()
     }
     
-    func audioPlayerEndInterruption(player: AVAudioPlayer) {
-        NSLog("\(#function) called")
-    }
 }

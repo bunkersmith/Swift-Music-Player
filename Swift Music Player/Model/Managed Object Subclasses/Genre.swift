@@ -1,6 +1,6 @@
 //
 //  Genre.swift
-//  MusicByCarlSwift
+//  Swift Music Player
 //
 //  Created by CarlSmith on 8/1/15.
 //  Copyright (c) 2015 CarlSmith. All rights reserved.
@@ -14,47 +14,47 @@ class Genre: NSManagedObject {
     @NSManaged var artists: NSSet
     @NSManaged var summary: GenreSummary
 
-    func addArtistsObject(value:Artist)
+    func addArtistsObject(_ value:Artist)
     {
-        self.willChangeValueForKey("artists")
+        self.willChangeValue(forKey: "artists")
         let tempSet:NSMutableSet = NSMutableSet(set:self.artists)
-        tempSet.addObject(value)
+        tempSet.add(value)
         self.artists = tempSet
-        self.didChangeValueForKey("artists")
+        self.didChangeValue(forKey: "artists")
     }
     
-    func addArtistsObjects(values:NSArray)
+    func addArtistsObjects(_ values:NSArray)
     {
-        self.willChangeValueForKey("artists")
+        self.willChangeValue(forKey: "artists")
         let tempSet:NSMutableSet = NSMutableSet(set:self.artists)
-        tempSet.addObjectsFromArray(values as [AnyObject])
+        tempSet.addObjects(from: values as [AnyObject])
         self.artists = tempSet
-        self.didChangeValueForKey("artists")
+        self.didChangeValue(forKey: "artists")
     }
     
-    func removeArtistsObject(value:Artist)
+    func removeArtistsObject(_ value:Artist)
     {
-        self.willChangeValueForKey("artists")
+        self.willChangeValue(forKey: "artists")
         let tempSet:NSMutableSet = NSMutableSet(set:self.artists)
-        tempSet.removeObject(value)
+        tempSet.remove(value)
         self.artists = tempSet
-        self.didChangeValueForKey("artists")
+        self.didChangeValue(forKey: "artists")
     }
     
-    func removeArtistsObjects(values:NSArray)
+    func removeArtistsObjects(_ values:NSArray)
     {
-        self.willChangeValueForKey("artists")
+        self.willChangeValue(forKey: "artists")
         let tempSet:NSMutableSet = NSMutableSet(set:self.artists)
-        tempSet.minusSet(NSSet(array:values as [AnyObject]) as Set<NSObject>)
+        tempSet.minus(NSSet(array:values as [AnyObject]) as Set<NSObject>)
         self.artists = tempSet
-        self.didChangeValueForKey("artists")
+        self.didChangeValue(forKey: "artists")
     }
     
     override var description: String {
         var returnValue = "***** GENRE *****"
         returnValue = returnValue + "\nsummary: \(summary)"
         returnValue = returnValue + "\nsongs:"
-        for (_, object) in artists.enumerate() {
+        for (_, object) in artists.enumerated() {
             let artist = object as! Artist
             returnValue = returnValue + "\n\(artist.summary.name)"
         }

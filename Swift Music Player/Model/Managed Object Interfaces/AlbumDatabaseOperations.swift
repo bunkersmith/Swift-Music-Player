@@ -9,12 +9,12 @@
 import UIKit
 import MediaPlayer
 
-class AlbumDatabaseOperations: NSOperation {
+class AlbumDatabaseOperations: NSObject {
     
-    var delegate:DatabaseProgressDelegate?
-    private var instrumentalAlbums: Array<NSDictionary>!
+    weak var delegate:DatabaseProgressDelegate?
+    fileprivate var instrumentalAlbums: Array<NSDictionary>!
     
-    override func main() {
+    func start(databaseInterface: DatabaseInterface) {
         let startTime = MillisecondTimer.currentTickCount()
         
         let albumFactory = AlbumFactory()
@@ -22,35 +22,34 @@ class AlbumDatabaseOperations: NSOperation {
         let userPreferences = UserPreferences()
         instrumentalAlbums = userPreferences.instrumentalAlbums
         
-        let databaseInterface = DatabaseInterface(forMainThread: false)
+        let albumsQuery = MPMediaQuery.albums()
         
-        let albumsQuery = MPMediaQuery.albumsQuery()
-        if let albumsCollection:[MPMediaItemCollection]? = albumsQuery.collections {
-            
-            var albumIndex: Int = 0
-            var progressFraction: Float
-            
-            for currentMediaCollection:MPMediaItemCollection in albumsCollection!
-            {
-                let albumSongMediaItems = currentMediaCollection.items
-                if albumFactory.processAlbumMediaItem(currentMediaCollection.representativeItem!,
-                                                      albumSongMediaItems: albumSongMediaItems,
-                                                      albumIndex:Int16(albumIndex),
-                                                      instrumentalAlbums: instrumentalAlbums,
-                                                      databaseInterface: databaseInterface) {
-                    databaseInterface.saveContext()
-                }
-                
-                if albumIndex % 10 == 0 || albumIndex == albumsCollection!.count - 1 {
-                    progressFraction = Float(albumIndex + 1) / Float(albumsCollection!.count)
-                    delegate?.progressUpdate(progressFraction, operationType: .AlbumOperation)
-                }
-                
-                albumIndex+=1
-            }
-        }
-        else {
+        guard let albumsCollection:[MPMediaItemCollection] = albumsQuery.collections else {
             Logger.writeToLogFile("Albums query failed")
+            delegate?.progressUpdate(1.0, operationType: .albumOperation)
+            return
+        }
+        
+        var albumIndex: Int = 0
+        var progressFraction: Float
+        
+        for currentMediaCollection:MPMediaItemCollection in albumsCollection
+        {
+            let albumSongMediaItems = currentMediaCollection.items
+            if albumFactory.processAlbumMediaItem(currentMediaCollection.representativeItem!,
+                                                  albumSongMediaItems: albumSongMediaItems,
+                                                  albumIndex:Int16(albumIndex),
+                                                  instrumentalAlbums: instrumentalAlbums,
+                                                  databaseInterface: databaseInterface) {
+                databaseInterface.saveContext()
+            }
+            
+            if albumIndex % 10 == 0 || albumIndex == albumsCollection.count - 1 {
+                progressFraction = Float(albumIndex + 1) / Float(albumsCollection.count)
+                delegate?.progressUpdate(progressFraction, operationType: .albumOperation)
+            }
+            
+            albumIndex+=1
         }
         
         let albumCount = databaseInterface.countOfEntitiesOfType("Album", predicate: nil)

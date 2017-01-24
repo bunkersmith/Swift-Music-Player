@@ -7,27 +7,30 @@
 //
 
 import UIKit
+import AVFoundation
 
-class NowPlayingViewController: UIViewController, DatabaseProgressDelegate {
+class NowPlayingViewController: PortraitViewController, AVAudioPlayerDelegate {
 
     @IBOutlet weak var songTitleLabel: MarqueeLabel!
     @IBOutlet weak var artistNameLabel: MarqueeLabel!
     @IBOutlet weak var albumTitleLabel: MarqueeLabel!
     @IBOutlet weak var trackOfTracksLabel: UILabel!
     @IBOutlet weak var progressSlider: UISlider!
-    @IBOutlet weak var trackTimeElapesdLabel: UILabel!
+    @IBOutlet weak var trackTimeElapsedLabel: UILabel!
     @IBOutlet weak var trackTimeRemainingLabel: UILabel!
     @IBOutlet weak var albumArtworkImageView: UIImageView!
     @IBOutlet weak var shuffleButton: UIBarButtonItem!
     @IBOutlet weak var playPauseButton: UIButton!
     @IBOutlet weak var volumeSlider: UISlider!
 
-    var song: Song!
+    //var song: Song?
+    var songNeedsPlaying = false
     
-    private var audioPlayer: AudioPlayer?
-    private var pauseIconImage:UIImage? = UIImage(named: "pause-icon.png")
-    private var playIconImage:UIImage? = UIImage(named: "play-icon.png")
-
+    fileprivate var pauseIconImage:UIImage = UIImage(named: "pause-icon.png")!
+    fileprivate var playIconImage:UIImage = UIImage(named: "play-icon.png")!
+    fileprivate var displayLink:CADisplayLink?
+    fileprivate var songManager = SongManager.instance
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         
@@ -35,135 +38,208 @@ class NowPlayingViewController: UIViewController, DatabaseProgressDelegate {
         volumeSlider.configureSlider("min-volume-slider.png", maxTrackImageName: "max-volume-slider.png", thumbImageName: "now-playing-volume-thumb.png")
     }
     
-    override func viewWillAppear(animated: Bool) {
+    override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
-
-        createSongObjects { 
-            self.createAlbumObjects({
-                dispatch_async(dispatch_get_main_queue(), { 
-                    self.song = SongFetcher.fetchSongByTitleArtistAndAlbum("Lonely Boy (LP Version)", artistName: "Andrew Gold", albumTitle: "Thank You For Being a Friend: The Best Of Andrew Gold.")
-                    self.populateUserInterface()
-                    if let songURL = NSKeyedUnarchiver.unarchiveObjectWithData(self.song.assetURL) as? NSURL {
-                        self.audioPlayer = AudioPlayer(url: songURL)
-                        if self.audioPlayer == nil {
-                            Logger.writeToLogFile("Audio player creation failed in \(#function)")
-                        }
-                    }
-                })
-            })
+        
+        Logger.logDetails(msg: "Entered")
+        
+        guard songManager.song != nil else {
+            return
         }
+        
+        NotificationCenter.default.addObserver(self, selector: #selector(refreshUserInterface), name: NSNotification.Name(rawValue: "Swift-Music-Player.refreshNowPlayingInformation"), object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(handleSongTimeUpdated), name: NSNotification.Name(rawValue: "Swift-Music-Player.songTimeUpdated"), object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(CoverFlowViewController.rotated), name: NSNotification.Name.UIDeviceOrientationDidChange, object: nil)
+        
+        songManager.delegate = self
+        
+        if songNeedsPlaying {
+            songNeedsPlaying = false
+            songManager.playSong(true)
+        }
+        
+        refreshUserInterface()
     }
 
+    override func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated)
+        
+        Logger.logDetails(msg: "Entered")
+        
+        NotificationCenter.default.removeObserver(self, name: NSNotification.Name(rawValue: "Swift-Music-Player.refreshNowPlayingInformation"), object: nil)
+        NotificationCenter.default.removeObserver(self, name: NSNotification.Name(rawValue: "Swift-Music-Player.songTimeUpdated"), object: nil)
+        NotificationCenter.default.removeObserver(self, name: NSNotification.Name.UIDeviceOrientationDidChange, object: nil)
+        
+        songManager.delegate = nil
+    }
+    
     override func didReceiveMemoryWarning() {
         super.didReceiveMemoryWarning()
         // Dispose of any resources that can be recreated.
     }
     
-    func progressUpdate(progressFraction:Float, operationType:DatabaseOperationType) {
-        let operationTypeString = DatabaseProgress.databaseOperationTypeToString(operationType)
-        let progressPercentage = progressFraction * 100.0
+    func refreshUserInterface() {
+        populateUserInterface()
         
-        NSLog("\(operationTypeString) progress: \(progressPercentage.string(1, maxFractionDigits: 1))")
+        let isAudioPlaying = songManager.isAudioPlaying()
+        
+        Logger.logDetails(msg:"Called with isAudioPlaying = \(isAudioPlaying)")
+        
+        startOrStopPlaybackTimer(isAudioPlaying)
+        updatePlayPauseButton(isAudioPlaying)
+        updateVolumeSliderDisplay(UserPreferences().volumeLevelValue())
     }
 
-    func createSongObjects(completionHandler: (() -> ())?) {
-        let databaseInterface = DatabaseInterface(forMainThread: NSThread.isMainThread())
-        if databaseInterface.countOfEntitiesOfType("Song", predicate: nil) == 0 {
-            dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_BACKGROUND, 0), {
-                let songFactory = SongFactory()
-                songFactory.delegate = self
-                songFactory.fillDatabaseSongsFromItunesLibrary()
-                completionHandler?()
-            })
-        } else {
-            completionHandler?()
-        }
-    }
-    
-    func createAlbumObjects(completionHandler: (() -> ())?) {
-        let databaseInterface = DatabaseInterface(forMainThread: NSThread.isMainThread())
-        if databaseInterface.countOfEntitiesOfType("Album", predicate: nil) == 0 {
-            dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_BACKGROUND, 0), {
-                let albumFactory = AlbumFactory()
-                albumFactory.delegate = self
-                albumFactory.fillDatabaseAlbumsFromItunesLibrary()
-                completionHandler?()
-            })
-        } else {
-            completionHandler?()
-        }
+    func handleUpdatePlayPauseButton(_ notification: Notification) {
+        DispatchQueue.main.async(execute: { () -> Void in
+            if let userInfo:[AnyHashable: Any] = (notification as NSNotification).userInfo {
+                if let isPlayingNumber:NSNumber = userInfo["isPlaying"] as? NSNumber {
+                    self.updatePlayPauseButton(isPlayingNumber.boolValue)
+                }
+            }
+        })
     }
     
     func populateUserInterface() {
+        guard let song = songManager.song else {
+            return
+        }
+        
+        configureShuffleButton(UserPreferences().shuffleFlagValue())
+        
         songTitleLabel.configureMarqueeLabel(song.summary.title)
         artistNameLabel.configureMarqueeLabel(song.summary.artistName)
         albumTitleLabel.configureMarqueeLabel(song.albumTitle)
         trackTimeRemainingLabel.text = "-\(DateTimeUtilities.durationToMinutesAndSecondsString(song.duration))"
-        populateAlbumArtworkImageView()
+        albumArtworkImageView.image = AlbumsInterface.artworkForAlbum(song.album, size: albumArtworkImageView.bounds.size)
         populateAlbumTrackNumber()
-    }
-    
-    func populateAlbumArtworkImageView() {
-        if let albumArtwork = song.album?.albumArtwork(DatabaseInterface(forMainThread: true)) {
-            if let albumArtworkImage = albumArtwork.imageWithSize(albumArtwork.bounds.size) {
-                let scaledAlbumArtworkImage = albumArtworkImage.scaleToSize(albumArtworkImageView.bounds.size)
-                albumArtworkImageView.image = scaledAlbumArtworkImage
-            }
-        }
-        else {
-            albumArtworkImageView.image = UIImage(named: "no-album-artwork.png")!
-        }
+        updatePlaybackElements()
     }
     
     func populateAlbumTrackNumber() {
-        if let album = song.album {
-            trackOfTracksLabel.text = "\(song.trackNumber) of \(album.songs.count)"
+        guard let song = songManager.song else {
+            return
         }
+        
+        let trackOfTracks = songManager.returnTrackOfTracksForSong(song)
+        
+        trackOfTracksLabel.text = "\(trackOfTracks.trackNumber) of \(trackOfTracks.totalTracks)"
     }
     
-    func updatePlayPauseButton(isAudioPlaying: Bool) {
+    func updatePlayPauseButton(_ isAudioPlaying: Bool) {
         if isAudioPlaying {
-            if pauseIconImage != nil {
-                self.playPauseButton.setImage(pauseIconImage, forState: .Normal)
-            }
+            self.playPauseButton.setImage(pauseIconImage, for: UIControlState())
         }
         else {
-            if playIconImage != nil {
-                self.playPauseButton.setImage(playIconImage, forState: .Normal)
+            self.playPauseButton.setImage(playIconImage, for: UIControlState())
+        }
+    }
+    
+    func startOrStopPlaybackTimer(_ audioIsPlaying: Bool) {
+        if audioIsPlaying {
+            if displayLink == nil {
+                displayLink = CADisplayLink(target: self, selector: #selector(updatePlaybackElements))
             }
-        }
-        //self.startStopSongTimer(isAudioPlaying)
-    }
-    
-    @IBAction func playPauseButtonPressed(sender: AnyObject) {
-        //NSLog("\(#function) called")
-        if let player = audioPlayer {
-            player.playOrPauseAudio()
-            updatePlayPauseButton(player.isAudioPlaying())
+            displayLink?.add(to: RunLoop.current, forMode: RunLoopMode.defaultRunLoopMode)
+        } else {
+            displayLink?.invalidate()
+            displayLink = nil
+            //displayLink?.removeFromRunLoop(NSRunLoop.currentRunLoop(), forMode: NSDefaultRunLoopMode)
         }
     }
     
-    @IBAction func nextButtonPressed(sender: AnyObject) {
-        //NSLog("\(#function) called")
+    func handleSongTimeUpdated() {
+        updatePlaybackElements() 
     }
     
-    @IBAction func previousButtonPressed(sender: AnyObject) {
-        //NSLog("\(#function) called")
+    func updatePlaybackElements() {
+        guard let song = songManager.song else {
+            return
+        }
+        
+        let songElapsedTime = songManager.songElapsedTime()
+        trackTimeElapsedLabel.text = "\(DateTimeUtilities.durationToMinutesAndSecondsString(songElapsedTime))"
+        let remainingTime = song.duration - songElapsedTime
+        trackTimeRemainingLabel.text = "-\(DateTimeUtilities.durationToMinutesAndSecondsString(remainingTime))"
+        progressSlider.setValue(Float(songElapsedTime / song.duration), animated: true)
     }
     
-    @IBAction func shuffleButtonPressed(sender: AnyObject) {
-        //NSLog("\(#function) called")
+    @IBAction func playPauseButtonPressed(_ sender: AnyObject) {
+        playOrPauseAudio()
     }
     
-    @IBAction func progressSliderValueChanged(sender: UISlider) {
-        //NSLog("\(#function) called")
+    func playOrPauseAudio() {
+        songManager.playOrPauseAudio()
+        let audioIsPlaying = songManager.isAudioPlaying()
+        updatePlayPauseButton(audioIsPlaying)
+        startOrStopPlaybackTimer(audioIsPlaying)
+    }
+    
+    @IBAction func nextButtonPressed(_ sender: AnyObject) {
+        songManager.skipToNextSong()
+        
+        Logger.logDetails(msg:"songManager.song = \(songManager.song)")
+    }
+    
+    @IBAction func previousButtonPressed(_ sender: AnyObject) {
+        //Logger.logDetails(msg: "Entered")
+        songManager.goBack()
+        
+        Logger.logDetails(msg:"songManager.song = \(songManager.song)")
+    }
+    
+    @IBAction func shuffleButtonPressed(_ sender: AnyObject) {
+        let userPreferences = UserPreferences()
+        userPreferences.toggleShuffleFlagSetting()
+        
+        let shuffleFlagSetting = userPreferences.shuffleFlagValue()
+        configureShuffleButton(shuffleFlagSetting)
+        
+        if shuffleFlagSetting {
+            songManager.createSongShuffler()
+        }
+    }
+    
+    func configureShuffleButton(_ shuffleValue: Bool) {
+        shuffleButton.tintColor = shuffleValue ? UIColor.orange : UIColor.white
+    }
+    
+    @IBAction func progressSliderValueChanged(_ sender: UISlider) {
+        guard let song = songManager.song else {
+            return
+        }
+        
         var progressSliderValue = progressSlider.value
         if progressSliderValue == 1.0 {
             progressSliderValue = 0.0
         }
+        
+        let updatedSongTime = TimeInterval(progressSliderValue) * song.duration
+        
+        Logger.writeToLogFile("Calling songManager.updateSongTime(\(updatedSongTime))")
+        
+        songManager.updateSongTime(updatedSongTime)
+        updatePlaybackElements()
     }
     
-    @IBAction func volumeSliderValueChanged(sender: UISlider) {
-        //NSLog("\(#function) called")
+    @IBAction func volumeSliderValueChanged(_ sender: UISlider) {
+        songManager.adjustVolume(volumeSlider.value)
+        UserPreferences().changeVolumeLevel(volumeSlider.value)
+    }
+    
+    func updateVolumeSliderDisplay(_ volumeSliderValue: Float) {
+        volumeSlider.value = volumeSliderValue
+    }
+    
+    // MARK: Audio Player Delegate
+    func audioPlayerDidFinishPlaying(_ player: AVAudioPlayer, successfully flag: Bool) {
+        Logger.logDetails(msg: "Entered")
+        updatePlayPauseButton(false)
+        startOrStopPlaybackTimer(false)
+    }
+    
+    func audioPlayerDecodeErrorDidOccur(_ player: AVAudioPlayer,
+                                        error: Error?) {
+        Logger.logDetails(msg: "Entered")
     }
 }

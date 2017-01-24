@@ -1,6 +1,6 @@
 //
 //  DatabaseInterface.swift
-//  MusicByCarlSwift
+//  Swift Music Player
 //
 //  Created by CarlSmith on 7/25/14.
 //  Copyright (c) 2014 CarlSmith. All rights reserved.
@@ -10,29 +10,31 @@ import Foundation
 import CoreData
 
 class DatabaseInterface: NSObject {
-    private var context:NSManagedObjectContext!
+    fileprivate var context:NSManagedObjectContext!
     
-    init(forMainThread: Bool) {
+    private override init() {} //This prevents others from using the default '()' initializer for this class.
+    
+    init(concurrencyType: NSManagedObjectContextConcurrencyType) {
         super.init()
-        let databaseManager:DatabaseManager = DatabaseManager.instance
-        if forMainThread {
+        let databaseManager = DatabaseManager.instance
+        if concurrencyType == .mainQueueConcurrencyType {
             context = databaseManager.returnMainManagedObjectContext()
         }
         else {
-            context = NSManagedObjectContext(concurrencyType: NSManagedObjectContextConcurrencyType.PrivateQueueConcurrencyType)
+            context = NSManagedObjectContext(concurrencyType: .privateQueueConcurrencyType)
             context.persistentStoreCoordinator = databaseManager.returnPersistentStoreCoordinator()
         }
         
-        //NSLog("context = \(context)")
+        //Logger.writeToLogFile("context = \(context)")
     }
     
-    func performInBackground(block: () -> Void) {
-        context.performBlock(block)
+    func performInBackground(_ block: @escaping () -> Void) {
+        context.perform(block)
     }
     
-    func newManagedObjectOfType(managedObjectClassName:String) -> NSManagedObject? {
-        if let entityDescription:NSEntityDescription = NSEntityDescription.entityForName(managedObjectClassName, inManagedObjectContext: context) {
-            return NSManagedObject(entity: entityDescription, insertIntoManagedObjectContext: context)
+    func newManagedObjectOfType(_ managedObjectClassName:String) -> NSManagedObject? {
+        if let entityDescription:NSEntityDescription = NSEntityDescription.entity(forEntityName: managedObjectClassName, in: context) {
+            return NSManagedObject(entity: entityDescription, insertInto: context)
         }
         Logger.writeToLogFile("Could not get entity description for managed object class \(managedObjectClassName)")
         return nil
@@ -51,8 +53,8 @@ class DatabaseInterface: NSObject {
         }
     }
     
-    func entitiesOfType(entityTypeName:String, predicate:NSPredicate?) -> [AnyObject] {
-        let fetchRequest:NSFetchRequest = NSFetchRequest(entityName:entityTypeName)
+    func entitiesOfType(_ entityTypeName:String, predicate:NSPredicate?) -> [AnyObject] {
+        let fetchRequest:NSFetchRequest<NSFetchRequestResult> = NSFetchRequest(entityName:entityTypeName)
         
         if predicate != nil {
             fetchRequest.predicate = predicate
@@ -60,7 +62,7 @@ class DatabaseInterface: NSObject {
         fetchRequest.returnsObjectsAsFaults = false
         
         do {
-            let result:[AnyObject] = try context.executeFetchRequest(fetchRequest)
+            let result:[AnyObject] = try context.fetch(fetchRequest)
             return result
         } catch let error as NSError {
             Logger.writeToLogFile("entitiesOfType for entity name \(entityTypeName) error: \(error)")
@@ -69,16 +71,16 @@ class DatabaseInterface: NSObject {
         return [AnyObject]()
     }
     
-    func entitiesOfType(entityTypeName:String, fetchRequestChangeBlock:((inputFetchRequest:NSFetchRequest) -> NSFetchRequest)?) -> [AnyObject] {
-        var fetchRequest:NSFetchRequest = NSFetchRequest(entityName:entityTypeName)
+    func entitiesOfType(_ entityTypeName:String, fetchRequestChangeBlock:((_ inputFetchRequest:NSFetchRequest<NSManagedObject>) -> NSFetchRequest<NSManagedObject>)?) -> [AnyObject] {
+        var fetchRequest:NSFetchRequest<NSFetchRequestResult> = NSFetchRequest(entityName:entityTypeName)
         
         if let localFetchRequestChangeBlock = fetchRequestChangeBlock {
-            fetchRequest = localFetchRequestChangeBlock(inputFetchRequest: fetchRequest)
+            fetchRequest = localFetchRequestChangeBlock(fetchRequest as! NSFetchRequest<NSManagedObject>) as! NSFetchRequest<NSFetchRequestResult>
         }
         fetchRequest.returnsObjectsAsFaults = false
         
         do {
-            let result:[AnyObject] = try context.executeFetchRequest(fetchRequest)
+            let result:[AnyObject] = try context.fetch(fetchRequest)
             return result
         } catch let error as NSError {
             Logger.writeToLogFile("entitiesOfType for entity name \(entityTypeName) error: \(error)")
@@ -87,26 +89,36 @@ class DatabaseInterface: NSObject {
         return [AnyObject]()
     }
     
-    func countOfEntitiesOfType(entityTypeName:String, predicate:NSPredicate?) -> Int {
-        let fetchRequest:NSFetchRequest = NSFetchRequest(entityName:entityTypeName)
+    func countOfEntitiesOfType(_ entityTypeName:String, predicate:NSPredicate?) -> Int {
+        let fetchRequest:NSFetchRequest<NSFetchRequestResult> = NSFetchRequest(entityName:entityTypeName)
         
         if predicate != nil {
             fetchRequest.predicate = predicate
         }
         
-        var error:NSError?
-        let result:Int = context.countForFetchRequest(fetchRequest, error: &error)
+        var result:Int = 0
         
-        if error != nil {
+        do {
+            result = try context.count(for: fetchRequest)
+        } catch let error as NSError {
             Logger.writeToLogFile("countOfEntitiesOfType for entity name \(entityTypeName) error: \(error)")
         }
-
+        
         return result
     }
     
-    func createFetchedResultsController(entityName:String, sortKey:String, secondarySortKey:String?, sectionNameKeyPath:String?, predicate:NSPredicate?) -> NSFetchedResultsController {
-        var fetchedResultsController:NSFetchedResultsController
-        let fetchRequest:NSFetchRequest = NSFetchRequest(entityName: entityName)
+    func createFetchedResultsController(_ entityName:String, sortKey:String, secondarySortKey:String?, sectionNameKeyPath:String?, predicate:NSPredicate?) -> NSFetchedResultsController<NSFetchRequestResult> {
+/*
+        Logger.logDetails(msg: "Entered")
+        Logger.writeToLogFile("entityName: \(entityName)")
+        Logger.writeToLogFile("sortKey: \(sortKey)")
+        Logger.writeToLogFile("secondarySortKey: \(secondarySortKey)")
+        Logger.writeToLogFile("sectionNameKeyPath: \(sectionNameKeyPath)")
+        Logger.writeToLogFile("predicate: \(predicate)")
+*/
+        
+        //:NSFetchedResultsController<NSManagedObject>
+        let fetchRequest:NSFetchRequest<NSFetchRequestResult> = NSFetchRequest(entityName: entityName)
 
         if predicate != nil {
             fetchRequest.predicate = predicate
@@ -123,7 +135,7 @@ class DatabaseInterface: NSObject {
         fetchRequest.fetchBatchSize = 30
         fetchRequest.returnsObjectsAsFaults = false
         
-        fetchedResultsController = NSFetchedResultsController(fetchRequest: fetchRequest, managedObjectContext: context, sectionNameKeyPath: sectionNameKeyPath, cacheName: nil)
+        let fetchedResultsController = NSFetchedResultsController(fetchRequest: fetchRequest, managedObjectContext: context, sectionNameKeyPath: sectionNameKeyPath, cacheName: nil)
         
         do {
             try fetchedResultsController.performFetch()
@@ -134,10 +146,10 @@ class DatabaseInterface: NSObject {
         return fetchedResultsController
     }
     
-    func deleteObject(coreDataObject:AnyObject)
+    func deleteObject(_ coreDataObject:AnyObject)
     {
         if let managedObject = coreDataObject as? NSManagedObject {
-            context.deleteObject(managedObject)
+            context.delete(managedObject)
             saveContext()
         }
         else {
@@ -145,16 +157,16 @@ class DatabaseInterface: NSObject {
         }
     }
     
-    func deleteAllObjectsWithEntityName(entityName: String)
+    func deleteAllObjectsWithEntityName(_ entityName: String)
     {
-        let fetchRequest = NSFetchRequest()
-        let entity = NSEntityDescription.entityForName(entityName, inManagedObjectContext:context)
+        let fetchRequest:NSFetchRequest<NSFetchRequestResult> = NSFetchRequest(entityName: entityName)
+        let entity = NSEntityDescription.entity(forEntityName: entityName, in:context)
         fetchRequest.entity = entity
     
         do {
-            if let items:[NSManagedObject] = try context.executeFetchRequest(fetchRequest) as? [NSManagedObject] {
+            if let items:[NSManagedObject] = try context.fetch(fetchRequest) as? [NSManagedObject] {
                 for managedObject:NSManagedObject in items {
-                    context.deleteObject(managedObject)
+                    context.delete(managedObject)
                 }
                 saveContext()
             }

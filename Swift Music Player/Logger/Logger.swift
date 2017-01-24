@@ -1,6 +1,6 @@
 //
 //  Logger.swift
-//  MusicByCarlSwift
+//  Swift Music Player
 //
 //  Created by CarlSmith on 6/9/15.
 //  Copyright (c) 2015 CarlSmith. All rights reserved.
@@ -9,32 +9,23 @@
 import UIKit
 
 class Logger: NSObject, NSCoding {
-    // This class method initializes the static singleton pointer
-    // if necessary, and returns the singleton pointer to the caller
-    class var instance: Logger {
-        struct Singleton {
-            static var instance:Logger? = nil
-            static var loggerToken: dispatch_once_t = 0
-        }
-        dispatch_once(&Singleton.loggerToken) {
-            Singleton.instance = self.loadInstance()
-        }
-        return Singleton.instance!
-    }
+
+    // Singleton instance
+    static let instance = Logger.loadInstance()
     
-    lazy private var logMessages:[String] = [String]()
+    lazy fileprivate var logMessages:[String] = [String]()
     
-    override init() {
+    fileprivate override init() {
         super.init()
     }
     
     required init?(coder aDecoder: NSCoder) {
         super.init()
-        self.logMessages = aDecoder.decodeObjectForKey("logMessages") as! [String]
+        self.logMessages = aDecoder.decodeObject(forKey: "logMessages") as! [String]
     }
  
-    func encodeWithCoder(aCoder: NSCoder) {
-        aCoder.encodeObject(self.logMessages, forKey:"logMessages")
+    func encode(with aCoder: NSCoder) {
+        aCoder.encode(self.logMessages, forKey:"logMessages")
     }
     
     func archiveData() {
@@ -43,34 +34,53 @@ class Logger: NSObject, NSCoding {
     
     class func loadInstance() -> Logger
     {
-        if let loggerData:Logger = NSKeyedUnarchiver.unarchiveObjectWithFile(FileUtilities.loggerArchiveFilePath()) as? Logger {
+        /*
+        if let loggerData:Logger = NSKeyedUnarchiver.unarchiveObject(withFile: FileUtilities.loggerArchiveFilePath()) as? Logger {
             return loggerData
         }
         return Logger()
+        */
+        
+        let archiveFileUrl = URL(fileURLWithPath:FileUtilities.loggerArchiveFilePath())
+        
+        guard let dat = NSData(contentsOf: archiveFileUrl) else {
+            return Logger()
+        }
+        
+        do {
+            let decodedDataObject = try NSKeyedUnarchiver.unarchiveTopLevelObjectWithData(dat)
+            guard let logger = decodedDataObject as? Logger else {
+                return Logger()
+            }
+            return logger
+        }
+        catch {
+            return Logger()
+        }
     }
     
-    class func writeToLogFile(string: String) {
+    class func writeToLogFile(_ string: String) {
         Logger.commonMemoryLogger(string, withTimeStamp:true)
     }
     
-    class func writeToLogFileSpecial(string: String) {
+    class func writeToLogFileSpecial(_ string: String) {
         Logger.commonMemoryLogger(string, withTimeStamp:true)
     }
     
-    class func commonMemoryLogger(stringToWrite: String, withTimeStamp: Bool) {
+    class func commonMemoryLogger(_ stringToWrite: String, withTimeStamp: Bool) {
         NSLog(stringToWrite)
     
         var logString = ""
     
         if withTimeStamp {
-            logString = logString + DateTimeUtilities.dateToString(NSDate()) + ": "
+            logString = logString + DateTimeUtilities.dateToString(Date()) + ": "
         }
     
         logString = logString + stringToWrite
         Logger.instance.logMessages.append(logString)
     }
     
-    class func commonDiskLogger(stringToWrite: String, withTimeStamp: Bool) {
+    class func commonDiskLogger(_ stringToWrite: String, withTimeStamp: Bool) {
         NSLog(stringToWrite)
     
         let logFilePath = FileUtilities.logFilePath()
@@ -78,7 +88,7 @@ class Logger: NSObject, NSCoding {
         var contents = ""
         
         do {
-            let oldContents = try String(contentsOfFile: logFilePath, encoding: NSUTF8StringEncoding)
+            let oldContents = try String(contentsOfFile: logFilePath, encoding: String.Encoding.utf8)
             contents = oldContents + "\n"
         } catch let error1 as NSError {
             error = error1
@@ -88,13 +98,13 @@ class Logger: NSObject, NSCoding {
     
     
         if withTimeStamp {
-            contents = contents + DateTimeUtilities.dateToString(NSDate()) + ": "
+            contents = contents + DateTimeUtilities.dateToString(Date()) + ": "
         }
     
         contents = contents + stringToWrite
     
         do {
-            try contents.writeToFile(logFilePath, atomically: false, encoding: NSUTF8StringEncoding)
+            try contents.write(toFile: logFilePath, atomically: false, encoding: String.Encoding.utf8)
         } catch let error1 as NSError {
             error = error1
             if error != nil {
@@ -113,44 +123,39 @@ class Logger: NSObject, NSCoding {
     class func writeLogFileToDisk() {
         let logFilePath = FileUtilities.logFilePath()
     
-        let fileManager = NSFileManager.defaultManager()
+        let fileManager = FileManager.default
     
-        var error:NSError?
-    
-        if fileManager.fileExistsAtPath(logFilePath) {
+        if fileManager.fileExists(atPath: logFilePath) {
             do {
-                try fileManager.removeItemAtPath(logFilePath)
-            } catch let error1 as NSError {
-                error = error1
-                if error != nil {
-                    NSLog("Error deleting log file (at path \(logFilePath)): \(error!)")
-                }
-                else {
-                    NSLog("Unspedified error deleting log file (at path \(logFilePath))")
-                }
+                try fileManager.removeItem(atPath: logFilePath)
+            } catch let error as NSError {
+                NSLog("Error deleting log file (at path \(logFilePath)): \(error)")
             }
         }
     
         let joiner = "\n"
-        let joinedStrings = Logger.instance.logMessages.joinWithSeparator(joiner)
+        let joinedStrings = Logger.instance.logMessages.joined(separator: joiner)
 
         do {
-            try joinedStrings.writeToFile(logFilePath, atomically:true, encoding:NSUTF8StringEncoding)
-            Logger.instance.logMessages.removeAll(keepCapacity: false)
-        } catch let error1 as NSError {
-            error = error1
-            if error != nil {
-                NSLog("Error writing to log file (at path \(logFilePath)): \(error!)")
-            }
-            else {
-                NSLog("Unspecified error writing to log file (at path \(logFilePath))")
-            }
+            try joinedStrings.write(toFile: logFilePath, atomically:true, encoding:String.Encoding.utf8)
+            Logger.instance.logMessages.removeAll(keepingCapacity: false)
+        } catch let error as NSError {
+            NSLog("Error writing to log file (at path \(logFilePath)): \(error)")
         }
     }
     
-    class func returnLogFileAsNSData() -> NSData? {
+    class func returnLogFileAsNSData() -> Data? {
         let logFilePath = FileUtilities.logFilePath()
-        return NSData(contentsOfFile: logFilePath)
+        return (try? Data(contentsOf: URL(fileURLWithPath: logFilePath)))
     }
 
+    class func logDetails(msg:String, function: String = #function, file: String = #file, line: Int = #line){
+        Logger.commonMemoryLogger("\(makeTag(function: function, file: file, line: line)) : \(msg)", withTimeStamp: true)
+    }
+    
+    private class func makeTag(function: String, file: String, line: Int) -> String{
+        let url = NSURL(fileURLWithPath: file)
+        let className = url.lastPathComponent ?? file
+        return "\(className) \(function)[\(line)]"
+    }
 }

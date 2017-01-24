@@ -8,7 +8,7 @@
 
 import UIKit
 
-class DatabaseViewController: UIViewController, DatabaseProgressDelegate, DeletionProgressDelegate {
+class DatabaseViewController: PortraitViewController, DatabaseProgressDelegate, DeletionProgressDelegate {
 
     @IBOutlet weak var buildDatabaseButton: UIButton!
     @IBOutlet weak var buildingSongsListLabel: UILabel!
@@ -19,19 +19,15 @@ class DatabaseViewController: UIViewController, DatabaseProgressDelegate, Deleti
     @IBOutlet weak var operationProgressLabel: UILabel!
     @IBOutlet weak var progressView: UIProgressView!
 
-    lazy private var databaseBuildQueue: NSOperationQueue = {
-        var queue = NSOperationQueue()
-        queue.name = "Database Build Queue"
-        queue.maxConcurrentOperationCount = 1
-        return queue
-    }()
+    fileprivate let databaseManager = DatabaseManager.instance
+    
     
     lazy var progressColor: UIColor = {
         return UIColor(red:0.0, green:0.75, blue:0.0, alpha:1.0)
     }()
     
     lazy var completionColor: UIColor = {
-        return UIColor.greenColor()
+        return UIColor.green
     }()
     
     override func viewDidLoad() {
@@ -45,23 +41,23 @@ class DatabaseViewController: UIViewController, DatabaseProgressDelegate, Deleti
         // Dispose of any resources that can be recreated.
     }
 
-    func deletionProgressUpdate(progressLabelText: String, progressViewAlpha: CGFloat) {
-        dispatch_async(dispatch_get_main_queue(), { () -> Void in
+    func deletionProgressUpdate(_ progressLabelText: String, progressViewAlpha: CGFloat) {
+        DispatchQueue.main.async(execute: { () -> Void in
             self.operationProgressLabel.text = progressLabelText
             self.progressView.alpha = progressViewAlpha
         })
     }
 
-    func progressUpdate(progressFraction:Float, operationType:DatabaseOperationType) {
-        dispatch_async(dispatch_get_main_queue(), { () -> Void in
+    func progressUpdate(_ progressFraction:Float, operationType:DatabaseOperationType) {
+        DispatchQueue.main.async(execute: { () -> Void in
             self.progressView.alpha = 1.0
             self.operationProgressLabel.text = DatabaseProgress.databaseOperationTypeToString(operationType) + " Addition Progress"
 
             if progressFraction == 1.0 {
                 self.progressView.progress = 0.0
                 self.showBuildCompletionAlert(operationType)
-                if operationType == .GenreOperation {
-                    self.buildDatabaseButton.tintColor = self.completionColor
+                if operationType == .genreOperation {
+                    self.databaseManager.databaseBuildInProgress = false
                     self.operationProgressLabel.textColor = self.completionColor
                     self.operationProgressLabel.text = "Build All Completed"
                 }
@@ -72,79 +68,81 @@ class DatabaseViewController: UIViewController, DatabaseProgressDelegate, Deleti
         })
     }
     
-    func showBuildCompletionAlert(operationType: DatabaseOperationType)
+    func showBuildCompletionAlert(_ operationType: DatabaseOperationType)
     {
         operationProgressLabel.text = "\(DatabaseProgress.databaseOperationTypeToString(operationType)) List Build Completed"
         
-        colorLabelForOperationType(operationType)
-        
-        var alertMessage:String
-        
-        if operationType == .GenreOperation {
-            alertMessage = "Build All Completed"
-        }
-        else {
-            alertMessage = "\(DatabaseProgress.databaseOperationTypeToString(operationType)) List Built"
-        }
-        
-        IToast().showToast(self, alertTitle: "Progress Alert", alertMessage: alertMessage, duration: 2, callersCompletionHandler:nil)
+        let label = labelForOperationType(operationType)
+        label.alpha = 1.0
     }
 
-    func colorLabelForOperationType(operationType: DatabaseOperationType) {
+    func labelForOperationType(_ operationType: DatabaseOperationType) -> UILabel {
         switch operationType {
-        case .SongOperation:
-            buildingSongsListLabel.textColor = self.completionColor
-            break
+        case .songOperation:
+            return buildingSongsListLabel
             
-        case .AlbumOperation:
-            buildingAlbumsListLabel.textColor = self.completionColor
-            break
+        case .albumOperation:
+            return buildingAlbumsListLabel
             
-        case .ArtistOperation:
-            buildingArtistsListLabel.textColor = self.completionColor
-            break
+        case .artistOperation:
+            return buildingArtistsListLabel
             
-        case .PlaylistOperation:
-            buildingPlaylistsListLabel.textColor = self.completionColor
-            break
+        case .playlistOperation:
+            return buildingPlaylistsListLabel
             
-        case .GenreOperation:
-            buildingGenresListLabel.textColor = self.completionColor
-            break
+        case .genreOperation:
+            return buildingGenresListLabel
         }
     }
     
-    @IBAction func buildDatabaseButtonPressed(sender: AnyObject) {
-        let databaseDeletionOperations = DatabaseDeletionOperations()
-        databaseDeletionOperations.delegate = self
-        databaseBuildQueue.addOperation(databaseDeletionOperations)
-        
-        let songDatabaseOperations = SongDatabaseOperations()
-        songDatabaseOperations.delegate = self
-        databaseBuildQueue.addOperation(songDatabaseOperations)
-        
-        let albumDatabaseOperations = AlbumDatabaseOperations()
-        albumDatabaseOperations.delegate = self
-        databaseBuildQueue.addOperation(albumDatabaseOperations)
-        
-        let artistDatabaseOperations = ArtistDatabaseOperations()
-        artistDatabaseOperations.delegate = self
-        databaseBuildQueue.addOperation(artistDatabaseOperations)
-        
-        let playlistDatabaseOperations = PlaylistDatabaseOperations()
-        playlistDatabaseOperations.delegate = self
-        databaseBuildQueue.addOperation(playlistDatabaseOperations)
+    func hideAllLabels() {
+        for operationType in DatabaseOperationType.allValues {
+            let label = labelForOperationType(operationType)
+            label.alpha = 0.0
+        }
     }
     
+    @IBAction func buildDatabaseButtonPressed(_ sender: AnyObject) {
+        operationProgressLabel.textColor = progressColor
+        hideAllLabels()
+        
+        databaseManager.databaseBuildInProgress = true
 
-    /*
-    // MARK: - Navigation
-
-    // In a storyboard-based application, you will often want to do a little preparation before navigation
-    override func prepareForSegue(segue: UIStoryboardSegue, sender: AnyObject?) {
-        // Get the new view controller using segue.destinationViewController.
-        // Pass the selected object to the new view controller.
+        let startTime = MillisecondTimer.currentTickCount()
+        
+        let databaseInterface = DatabaseInterface(concurrencyType: .privateQueueConcurrencyType)
+        
+        SongFetcher.fetchAllPlayedSongs { (songDictionaries) in
+            Logger.logDetails(msg: "\(songDictionaries)")
+            
+            databaseInterface.performInBackground {
+                let databaseDeletionOperations = DatabaseDeletionOperations()
+                databaseDeletionOperations.delegate = self
+                databaseDeletionOperations.start(databaseInterface: databaseInterface)
+                
+                let songDatabaseOperations = SongDatabaseOperations()
+                songDatabaseOperations.delegate = self
+                songDatabaseOperations.start(databaseInterface: databaseInterface, playedSongs:songDictionaries)
+                
+                let albumDatabaseOperations = AlbumDatabaseOperations()
+                albumDatabaseOperations.delegate = self
+                albumDatabaseOperations.start(databaseInterface: databaseInterface)
+                
+                let artistDatabaseOperations = ArtistDatabaseOperations()
+                artistDatabaseOperations.delegate = self
+                artistDatabaseOperations.start(databaseInterface: databaseInterface)
+                
+                let playlistDatabaseOperations = PlaylistDatabaseOperations()
+                playlistDatabaseOperations.delegate = self
+                playlistDatabaseOperations.start(databaseInterface: databaseInterface)
+                
+                let genreDatabaseOperations = GenreDatabaseOperations()
+                genreDatabaseOperations.delegate = self
+                genreDatabaseOperations.start(databaseInterface: databaseInterface)
+                
+                Logger.writeToLogFile("Total Database Build Time: \(MillisecondTimer.secondsSince(startTime))")
+            }
+        }
     }
-    */
-
+    
 }

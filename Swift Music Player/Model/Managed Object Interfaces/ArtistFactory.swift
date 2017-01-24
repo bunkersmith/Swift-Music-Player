@@ -9,7 +9,7 @@
 import MediaPlayer
 
 class ArtistFactory {
-    func populateArtistSummary(inout artistSummary:ArtistSummary, mediaItem:MPMediaItem, artistName:String) {
+    func populateArtistSummary(_ artistSummary:inout ArtistSummary, mediaItem:MPMediaItem, artistName:String) {
         artistSummary.name = artistName
         artistSummary.searchKey = artistName
         artistSummary.strippedName = MediaObjectUtilities.returnMediaObjectStrippedString(artistSummary.name)
@@ -17,44 +17,45 @@ class ArtistFactory {
         artistSummary.persistentID = mediaItem.albumArtistPersistentID
     }
     
-    func populateArtist(inout artist:Artist, artistSummary:ArtistSummary, artistMediaItem:MPMediaItem, artistName:String, databaseInterface:DatabaseInterface) -> Bool {
+    func populateArtist(_ artist:inout Artist, artistSummary:ArtistSummary, artistMediaItem:MPMediaItem, artistName:String, databaseInterface:DatabaseInterface) -> Bool {
         artist.summary = artistSummary
         
         let artistMediaAlbums = ArtistFetcher.fetchMediaLibraryArtistAlbums(artist.summary.persistentID)
         let artistCoreDataAlbums = ArtistFetcher.fetchArtistAlbumsWithArtistPersistentID(artist.summary.persistentID, databaseInterface:databaseInterface)
         
-        if (artistMediaAlbums.count == artistCoreDataAlbums.count) {
-            artist.addAlbumsObjects(artistCoreDataAlbums)
-            return true
-        }
-        else
-        {
+        guard artistMediaAlbums.count == artistCoreDataAlbums.count else {
             Logger.writeToLogFile("Media album count (\(artistMediaAlbums.count)) not equal to Core Data album count (\(artistCoreDataAlbums.count)) for artist " + artistName) // counts were %lu
+            return false
         }
-        return false
+        
+        artist.addAlbumsObjects(artistCoreDataAlbums as NSArray)
+        return true
     }
     
-    func processArtistMediaItem(artistMediaItem: MPMediaItem, databaseInterface:DatabaseInterface) {
+    func processArtistMediaItem(_ artistMediaItem: MPMediaItem, databaseInterface:DatabaseInterface) {
         let artistName:String? = artistMediaItem.albumArtist
         if artistName == nil {
             Logger.writeToLogFile("artistName = NIL for artistMediaItem titled \(artistMediaItem.title)")
         }
         
-        if artistName != nil && artistName != "" {
-            if var artist = databaseInterface.newManagedObjectOfType("Artist") as? Artist {
-                if var artistSummary:ArtistSummary = databaseInterface.newManagedObjectOfType("ArtistSummary") as? ArtistSummary {
-                    populateArtistSummary(&artistSummary, mediaItem: artistMediaItem, artistName: artistName!)
-                    if populateArtist(&artist, artistSummary: artistSummary, artistMediaItem: artistMediaItem, artistName: artistName!, databaseInterface:databaseInterface) {
-                        databaseInterface.saveContext()
-                    }
-                }
-                else {
-                    Logger.writeToLogFile("artistSummary == nil for artist named " + artistName!)
-                }
-            }
-        }
-        else {
+        guard artistName != nil && artistName != "" else {
             Logger.writeToLogFile("Found a nil or blank artist name for artistMediaItem titled \(artistMediaItem.title)")
+            return
+        }
+        
+        guard var artist = databaseInterface.newManagedObjectOfType("Artist") as? Artist else {
+            Logger.writeToLogFile("artist == nil for artist named " + artistName!)
+            return
+        }
+        
+        guard var artistSummary:ArtistSummary = databaseInterface.newManagedObjectOfType("ArtistSummary") as? ArtistSummary else {
+            Logger.writeToLogFile("artistSummary == nil for artist named " + artistName!)
+            return
+        }
+        
+        populateArtistSummary(&artistSummary, mediaItem: artistMediaItem, artistName: artistName!)
+        if populateArtist(&artist, artistSummary: artistSummary, artistMediaItem: artistMediaItem, artistName: artistName!, databaseInterface:databaseInterface) {
+            databaseInterface.saveContext()
         }
     }
     

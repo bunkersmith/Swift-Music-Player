@@ -22,6 +22,8 @@ class PlaylistsViewController: MediaListViewController, MediaListVCDelegate {
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         
+        Logger.logDetails(msg:"Entered")
+        
         ultimatePlaylistSummary = nil
         
         if SongManager.instance.song != nil {

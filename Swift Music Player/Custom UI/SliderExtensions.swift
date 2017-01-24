@@ -10,16 +10,16 @@ import Foundation
 
 extension UISlider {
     
-    func configureSlider(minTrackImageName: String, maxTrackImageName: String, thumbImageName: String) {
-        let minTrackImage = UIImage(named: minTrackImageName)?.resizableImageWithCapInsets(UIEdgeInsetsMake(0.0, 7.0, 0.0, 0.0))
-        let maxTrackImage = UIImage(named: maxTrackImageName)?.resizableImageWithCapInsets(UIEdgeInsetsMake(0.0, 0.0, 0.0, 8.0))
+    func configureSlider(_ minTrackImageName: String, maxTrackImageName: String, thumbImageName: String) {
+        let minTrackImage = UIImage(named: minTrackImageName)?.resizableImage(withCapInsets: UIEdgeInsetsMake(0.0, 7.0, 0.0, 0.0))
+        let maxTrackImage = UIImage(named: maxTrackImageName)?.resizableImage(withCapInsets: UIEdgeInsetsMake(0.0, 0.0, 0.0, 8.0))
         let thumbImage = UIImage(named: thumbImageName)
-        setMinimumTrackImage(minTrackImage, forState: .Normal)
-        setMinimumTrackImage(minTrackImage, forState: .Selected)
-        setMaximumTrackImage(maxTrackImage, forState: .Normal)
-        setMaximumTrackImage(maxTrackImage, forState: .Selected)
-        setThumbImage(thumbImage, forState: .Normal)
-        setThumbImage(thumbImage, forState: .Selected)
+        setMinimumTrackImage(minTrackImage, for: UIControlState())
+        setMinimumTrackImage(minTrackImage, for: .selected)
+        setMaximumTrackImage(maxTrackImage, for: UIControlState())
+        setMaximumTrackImage(maxTrackImage, for: .selected)
+        setThumbImage(thumbImage, for: UIControlState())
+        setThumbImage(thumbImage, for: .selected)
     }
 
 }

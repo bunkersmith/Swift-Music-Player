@@ -37,7 +37,7 @@ class EmailLogViewController: EmailViewController {
         Logger.writeLogFileToDisk()
         // Attach the log file to the email
         if let loggerFileData = Logger.returnLogFileAsNSData() {
-            returnValue.addAttachmentData(loggerFileData as Data, mimeType: "text", fileName: "Swift-Music-Player-Log.txt")
+            returnValue.addAttachmentData(loggerFileData as Data, mimeType: "text", fileName: FileUtilities.timeStampedLogFileName())
             let currentTimeString:String = DateTimeUtilities.returnStringFromNSDate(Date())
             
             // Fill out the email body text

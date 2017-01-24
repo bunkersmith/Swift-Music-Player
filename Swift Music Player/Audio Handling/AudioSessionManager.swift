@@ -1,6 +1,6 @@
 //
 //  AudioSessionManager.swift
-//  MusicByCarlSwift
+//  Swift Music Player
 //
 //  Created by CarlSmith on 6/25/15.
 //  Copyright (c) 2015 CarlSmith. All rights reserved.
@@ -11,27 +11,27 @@ import AVFoundation
 import MediaPlayer
 
 class AudioSessionManager: NSObject {
-    private var sessionIsActive:Bool = false
-    private var audioSessionPtr = AVAudioSession.sharedInstance()
-    private var remoteAudioCommandHandler = RemoteAudioCommandHandler()
-    private var audioNotificationHandler = AudioNotificationHandler()
+    fileprivate var audioSessionPtr = AVAudioSession.sharedInstance()
+    fileprivate var remoteAudioCommandHandler = RemoteAudioCommandHandler.instance
+    fileprivate var audioNotificationHandler = AudioNotificationHandler.instance
     
-    override init() {
+    // Singleton instance
+    static let instance = AudioSessionManager()
+    
+    fileprivate override init() {
         super.init()
     }
     
     deinit {
+        Logger.logDetails(msg: "Calling deactivateAudioSession")
+        
         deactivateAudioSession()
-    }
-    
-    func reactivateAudioSession() {
-        if !sessionIsActive {
-            activateAudioSession()
-        }
     }
     
     func activateAudioSession()
     {
+        Logger.logDetails(msg: "Entered")
+        
         do {
             try audioSessionPtr.setCategory(AVAudioSessionCategoryPlayback)
         } catch let error as NSError {
@@ -45,12 +45,12 @@ class AudioSessionManager: NSObject {
         }
     
         audioNotificationHandler.addNotificationObservers()
-        remoteAudioCommandHandler.addRemoteCommandHandlers()
         remoteAudioCommandHandler.enableDisableRemoteCommands(true)
-        sessionIsActive = true
     }
     
     func deactivateAudioSession() {
+        Logger.logDetails(msg: "Entered")
+        
         do {
             try audioSessionPtr.setActive(false)
         } catch let error as NSError {
@@ -59,7 +59,6 @@ class AudioSessionManager: NSObject {
 
         audioNotificationHandler.removeNotificationObservers()
         remoteAudioCommandHandler.enableDisableRemoteCommands(false)
-        sessionIsActive = false
     }
     
 }
